@@ -36,9 +36,7 @@ class MyApp extends StatelessWidget {
         child: MaterialApp.router(
           title: 'The Reminder App',
           debugShowCheckedModeBanner: false,
-          routeInformationParser: AppRouter.router.routeInformationParser,
-          routerDelegate: AppRouter.router.routerDelegate,
-          routeInformationProvider: AppRouter.router.routeInformationProvider,
+          routerConfig: AppRouter.router,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           ),

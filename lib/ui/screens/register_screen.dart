@@ -1,23 +1,21 @@
-// lib/features/authentication/presentation/pages/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
-import 'package:the_reminder_app/ui/widgets/auth_form_widget.dart';
+import 'package:the_reminder_app/ui/widgets/register_form_widget.dart';
 import 'dart:io' show Platform;
 
 import 'package:the_reminder_app/ui/widgets/social_login_widget.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
+class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -83,13 +81,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 position: _slideAnimation,
                 child: Column(
                   children: [
-                    // Header Section
+                    // Header Section with Back Button
                     _buildHeader(),
 
-                    // Login Form Section
+                    // Register Form Section
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(top: 40),
+                        margin: const EdgeInsets.only(top: 20),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -97,7 +95,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             topRight: Radius.circular(30),
                           ),
                         ),
-                        child: _buildLoginForm(),
+                        child: _buildRegisterForm(),
                       ),
                     ),
                   ],
@@ -112,43 +110,71 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.fromLTRB(20, 20, 40, 30),
       child: Column(
         children: [
-          // App Logo/Icon
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha((0.2 * 255).toInt()),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.notifications_active,
-              size: 50,
-              color: Colors.white,
-            ),
+          // Back Button and Title Row
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.arrow_back_ios,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const Expanded(
+                child: Text(
+                  'Create Account',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 48), // Balance the back button
+            ],
           ),
 
           const SizedBox(height: 20),
 
-          // App Name
-          const Text(
-            'Reminder App',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          // App Logo/Icon
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha((0.2 * 255).toInt()),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.person_add,
+              size: 40,
               color: Colors.white,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Welcome Message
+          Text(
+            'Join us today!',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withAlpha((0.9 * 255).toInt()),
             ),
           ),
 
           const SizedBox(height: 8),
 
-          // App Tagline
+          // Subtitle
           Text(
-            'Never miss what matters most',
+            'Create your account to get started',
             style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withAlpha((0.8 * 255).toInt()),
+              fontSize: 14,
+              color: Colors.white.withAlpha((0.7 * 255).toInt()),
             ),
           ),
         ],
@@ -156,7 +182,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget _buildRegisterForm() {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         return SingleChildScrollView(
@@ -164,43 +190,43 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // Welcome Text
               const Text(
-                'Welcome Back!',
+                'Get Started',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF2D3748),
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
 
               Text(
-                'Sign in to continue to your account',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                'Create your account to continue',
+                style: TextStyle(fontSize: 15, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
 
               // Social Login Buttons
               SocialLoginWidget(
                 onGooglePressed: () {
-                  // context.read<AuthBloc>().add(GoogleSignInRequested());
+                  // context.read<AuthBloc>().add(GoogleSignUpRequested());
                 },
                 onApplePressed: Platform.isIOS
                     ? () {
-                        // context.read<AuthBloc>().add(AppleSignInRequested());
+                        // context.read<AuthBloc>().add(AppleSignUpRequested());
                       }
                     : null,
                 isLoading: state is AuthLoading,
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 25),
 
               // Divider
               Row(
@@ -211,7 +237,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'Or continue with',
+                      'Or sign up with',
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ),
@@ -221,22 +247,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ],
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 25),
 
-              // Email Login Form
-              AuthFormWidget(
+              // Email Registration Form
+              RegisterFormWidget(
                 isLoading: state is AuthLoading,
-                onEmailLogin: (email, password) {
+                onRegister: (email, password, phoneNumber) {
                   context.read<AuthBloc>().add(
-                    EmailSignInRequested(email: email, password: password),
+                    EmailSignInRequested(
+                      email: email,
+                      password: password,
+                    ),
                   );
                 },
-                onCreateAccount: () {
-                  context.go("/register_page");
+                onLoginPressed: () {
+                  Navigator.pop(context);
                 },
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 25),
 
               // Terms and Privacy
               _buildTermsAndPrivacy(),
@@ -251,8 +280,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Column(
       children: [
         Text(
-          'By signing in, you agree to our',
+          'By creating an account, you agree to our',
           style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Row(
@@ -294,14 +324,3 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 }
-
-// lib/features/authentication/presentation/widgets/social_login_widget.dart
-
-
-
-// lib/features/authentication/presentation/widgets/auth_form_widget.dart
-
-
-
-// lib/features/authentication/presentation/bloc/auth_event.dart
-

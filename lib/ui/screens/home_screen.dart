@@ -8,6 +8,7 @@ import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
 import 'package:the_reminder_app/blocs/pomodoro/pomodoro_cubit.dart';
 import 'package:the_reminder_app/blocs/pomodoro/pomodoro_state.dart';
+import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_event.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
@@ -31,11 +32,44 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _quickReminderController =
       TextEditingController();
   int _currentIndex = 0;
+  static const String _fallbackUserId = 'local-user';
+  String? _activeUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncUserScope(_resolveUserId());
+    });
+  }
 
   @override
   void dispose() {
     _quickReminderController.dispose();
     super.dispose();
+  }
+
+  String _resolveUserId() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess) {
+      return authState.userId;
+    }
+    return _fallbackUserId;
+  }
+
+  void _syncUserScope(String userId) {
+    if (_activeUserId == userId) return;
+    _activeUserId = userId;
+    context.read<ReminderBloc>().setActiveUser(userId);
+    context.read<AlarmCubit>().setActiveUser(userId);
+    context.read<HydrationCubit>().setActiveUser(userId);
+  }
+
+  String _userIdFromState(AuthState state) {
+    if (state is AuthSuccess) {
+      return state.userId;
+    }
+    return _fallbackUserId;
   }
 
   @override
@@ -48,66 +82,74 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final titles = ['Home', 'Calendar', 'Settings', 'Profile'];
 
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: _HomeDrawer(
-        currentIndex: _currentIndex,
-        onDestinationSelected: _setIndex,
-        isPremium: subscriptionState.isPremium,
-        onSubscriptionTap: _showSubscriptionSheet,
-      ),
-      appBar: AppBar(
-        title: Text(titles[_currentIndex]),
-        centerTitle: true,
-        actions: _buildAppBarActions(subscriptionState),
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildHomeTab(
-            reminderState,
-            alarmState,
-            hydrationState,
-            subscriptionState,
-            pomodoroState,
-          ),
-          const CalendarScreen(),
-          const SettingsScreen(),
-          const ProfileScreen(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Calendar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showCreationSheet();
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New'),
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          _userIdFromState(previous) != _userIdFromState(current),
+      listener: (context, state) {
+        _syncUserScope(_userIdFromState(state));
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        drawer: _HomeDrawer(
+          currentIndex: _currentIndex,
+          onDestinationSelected: _setIndex,
+          isPremium: subscriptionState.isPremium,
+          onSubscriptionTap: _showSubscriptionSheet,
+        ),
+        appBar: AppBar(
+          title: Text(titles[_currentIndex]),
+          centerTitle: true,
+          actions: _buildAppBarActions(subscriptionState),
+        ),
+        body: IndexedStack(
+          index: _currentIndex,
+          children: [
+            _buildHomeTab(
+              reminderState,
+              alarmState,
+              hydrationState,
+              subscriptionState,
+              pomodoroState,
+            ),
+            const CalendarScreen(),
+            const SettingsScreen(),
+            const ProfileScreen(),
+          ],
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) =>
+              setState(() => _currentIndex = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
+              label: 'Calendar',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            _showCreationSheet();
+          },
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('New'),
+        ),
       ),
     );
   }
@@ -162,7 +204,10 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     final grouped = reminderState.remindersByPriority;
     final theme = Theme.of(context);
-    final localizations = MaterialLocalizations.of(context);
+
+    if (reminderState.isLoading && reminderState.activeReminders.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return RefreshIndicator(
       onRefresh: () async =>
@@ -498,6 +543,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.of(context).pop(
                             Reminder(
                               id: id,
+                              userId: context
+                                  .read<ReminderBloc>()
+                                  .state
+                                  .activeUserId,
                               title: title,
                               description: notesController.text.trim(),
                               scheduledAt: scheduledAt,
@@ -704,6 +753,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   existing?.id ??
                                   DateTime.now().microsecondsSinceEpoch
                                       .toString(),
+                              userId: context
+                                  .read<AlarmCubit>()
+                                  .state
+                                  .activeUserId,
                               time: selectedTime,
                               recurrence: recurrenceLabel.isEmpty
                                   ? 'Custom interval'

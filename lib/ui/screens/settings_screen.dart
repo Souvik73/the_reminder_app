@@ -30,7 +30,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final subscriptionState = context.watch<SubscriptionCubit>().state;
 
     return BlocListener<HydrationCubit, HydrationState>(
-      listenWhen: (previous, current) => previous.dailyGoal != current.dailyGoal,
+      listenWhen: (previous, current) =>
+          previous.dailyGoal != current.dailyGoal,
       listener: (context, state) {
         setState(() => _goal = state.dailyGoal.toDouble());
       },
@@ -39,7 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             'General',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           SwitchListTile(
@@ -50,7 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           SwitchListTile(
             value: _voiceShortcutsEnabled,
-            onChanged: (value) => setState(() => _voiceShortcutsEnabled = value),
+            onChanged: (value) =>
+                setState(() => _voiceShortcutsEnabled = value),
             title: const Text('Voice shortcuts'),
             subtitle: const Text('Allow voice commands for quick reminders.'),
           ),
@@ -63,11 +67,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
           Text(
             'Hydration goal',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -75,7 +83,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     'Daily target: ${_goal.round()} ml',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Slider(
                     value: _goal,
@@ -85,7 +95,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     label: '${_goal.round()} ml',
                     onChanged: (value) => setState(() => _goal = value),
                     onChangeEnd: (value) {
-                      context.read<HydrationCubit>().setDailyGoal(value.round());
+                      context.read<HydrationCubit>().setDailyGoal(
+                        value.round(),
+                      );
                     },
                   ),
                   Text(
@@ -101,11 +113,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
           Text(
             'Premium',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -119,8 +135,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? theme.colorScheme.primary
                             : theme.colorScheme.primary.withOpacity(0.12),
                         child: Icon(
-                          subscriptionState.isPremium ? Icons.verified : Icons.workspace_premium_outlined,
-                          color: subscriptionState.isPremium ? Colors.white : theme.colorScheme.primary,
+                          subscriptionState.isPremium
+                              ? Icons.verified
+                              : Icons.workspace_premium_outlined,
+                          color: subscriptionState.isPremium
+                              ? Colors.white
+                              : theme.colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -129,8 +149,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              subscriptionState.isPremium ? 'Premium unlocked' : 'Upgrade to Premium',
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                              subscriptionState.isPremium
+                                  ? 'Premium unlocked'
+                                  : 'Upgrade to Premium',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -138,7 +162,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ? 'Enjoy geofenced reminders and an ad-free experience.'
                                   : 'Unlock geofenced reminders, priority support, and an ad-free experience.',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.7,
+                                ),
                               ),
                             ),
                           ],
@@ -156,7 +182,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : () {
                                   context.read<SubscriptionCubit>().upgrade();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Premium activated. Enjoy the upgrade!')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Premium activated. Enjoy the upgrade!',
+                                      ),
+                                    ),
                                   );
                                 },
                           child: const Text('Purchase Premium'),
@@ -169,15 +199,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? () {
                                   context.read<SubscriptionCubit>().downgrade();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Premium disabled.')),
+                                    const SnackBar(
+                                      content: Text('Premium disabled.'),
+                                    ),
                                   );
                                 }
                               : () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Attempting to restore purchases...')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Attempting to restore purchases...',
+                                      ),
+                                    ),
                                   );
                                 },
-                          child: Text(subscriptionState.isPremium ? 'Downgrade' : 'Restore purchases'),
+                          child: Text(
+                            subscriptionState.isPremium
+                                ? 'Downgrade'
+                                : 'Restore purchases',
+                          ),
                         ),
                       ),
                     ],
@@ -189,11 +229,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
           Text(
             'Support',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               children: [
                 ListTile(

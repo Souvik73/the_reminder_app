@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
-import 'package:the_reminder_app/blocs/alarm/alarm_state.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
-import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -23,10 +21,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final localizations = MaterialLocalizations.of(context);
     final reminderState = context.watch<ReminderBloc>().state;
     final alarmState = context.watch<AlarmCubit>().state;
-    final reminders = reminderState.reminders
-        .where((reminder) => reminder.scheduledAt.isAfter(DateTime.now().subtract(const Duration(days: 1))))
-        .toList()
-      ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    final reminders =
+        reminderState.reminders
+            .where(
+              (reminder) => reminder.scheduledAt.isAfter(
+                DateTime.now().subtract(const Duration(days: 1)),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
     final alarms = alarmState.alarms;
 
@@ -48,14 +51,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
             children: [
               Text(
                 'Plan your schedule',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 _selectedDay == null
                     ? 'Tap a day to filter reminders'
                     : 'Showing reminders for ${localizations.formatMediumDate(_selectedDay!)}',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
               ),
             ],
           ),
@@ -88,7 +95,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       : 'No reminders are scheduled for this day.',
                   icon: Icons.event_available_outlined,
                 ),
-              ..._buildReminderSections(filteredReminders, localizations, theme),
+              ..._buildReminderSections(
+                filteredReminders,
+                localizations,
+                theme,
+              ),
               const SizedBox(height: 24),
               _buildAlarmSection(alarms, theme, localizations),
             ],
@@ -116,12 +127,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final orderedKeys = grouped.keys.toList()..sort((a, b) => a.compareTo(b));
 
     return orderedKeys.map((date) {
-      final entries = grouped[date]!..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+      final entries = grouped[date]!
+        ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Card(
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -132,7 +146,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   children: [
                     Text(
                       localizations.formatMediumDate(date),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     Text(
                       '${entries.length} reminder${entries.length == 1 ? '' : 's'}',
@@ -145,15 +161,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 const SizedBox(height: 12),
                 ...entries.map((reminder) {
-                  final timeOfDay = TimeOfDay.fromDateTime(reminder.scheduledAt);
-                  final timeLabel = localizations.formatTimeOfDay(timeOfDay, alwaysUse24HourFormat: false);
+                  final timeOfDay = TimeOfDay.fromDateTime(
+                    reminder.scheduledAt,
+                  );
+                  final timeLabel = localizations.formatTimeOfDay(
+                    timeOfDay,
+                    alwaysUse24HourFormat: false,
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: reminder.priority.color.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
@@ -176,13 +200,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   Expanded(
                                     child: Text(
                                       reminder.title,
-                                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                   Text(
                                     timeLabel,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.6),
                                     ),
                                   ),
                                 ],
@@ -192,22 +220,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 Text(
                                   reminder.description,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.7),
                                   ),
                                 ),
                               ],
-                              if (reminder.isGeofenced && reminder.locationName != null) ...[
+                              if (reminder.isGeofenced &&
+                                  reminder.locationName != null) ...[
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    Icon(Icons.location_on_outlined,
-                                        size: 16, color: theme.colorScheme.primary),
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 16,
+                                      color: theme.colorScheme.primary,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       reminder.locationName!,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -253,7 +287,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               children: [
                 Text(
                   'Alarms',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(
                   '${alarms.length} active',
@@ -275,7 +311,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 title: Text(
                   alarm.label,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 subtitle: Text(
                   '${alarm.recurrence} • $timeLabel',
@@ -314,11 +352,17 @@ class _EmptyStateCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 42, color: theme.colorScheme.primary.withOpacity(0.8)),
+          Icon(
+            icon,
+            size: 42,
+            color: theme.colorScheme.primary.withOpacity(0.8),
+          ),
           const SizedBox(height: 12),
           Text(
             title,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 6),
           Text(

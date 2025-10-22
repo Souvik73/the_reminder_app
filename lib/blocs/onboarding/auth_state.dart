@@ -1,7 +1,5 @@
 part of 'auth_bloc.dart';
 
-
-
 // lib/features/authentication/presentation/bloc/auth_state.dart
 
 abstract class AuthState {}

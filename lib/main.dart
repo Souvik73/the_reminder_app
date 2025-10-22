@@ -1,28 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
-import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
-import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
+import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/pomodoro/pomodoro_cubit.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/config/routes.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
-
-final GetIt injector = GetIt.instance;
-
-Future<void> setupInjector() async {
-  // register your AuthBloc factory
-  injector.registerFactory<AuthBloc>(
-    () => AuthBloc(),
-  );
-}
+import 'package:the_reminder_app/data/repositories/planner_repository.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await setupInjector();
+  await injection.init();
   runApp(const MyApp());
 }
 
@@ -32,12 +23,30 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    const defaultUserId = 'local-user';
+    final plannerRepository = injection.locator<PlannerRepository>();
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => injection.locator<AuthBloc>()),
-        BlocProvider(create: (context) => ReminderBloc()),
-        BlocProvider(create: (context) => AlarmCubit()),
-        BlocProvider(create: (context) => HydrationCubit()),
+        BlocProvider(
+          create: (context) => ReminderBloc(
+            repository: plannerRepository,
+            initialUserId: defaultUserId,
+          ),
+        ),
+        BlocProvider(
+          create: (context) => AlarmCubit(
+            repository: plannerRepository,
+            initialUserId: defaultUserId,
+          ),
+        ),
+        BlocProvider(
+          create: (context) => HydrationCubit(
+            repository: plannerRepository,
+            initialUserId: defaultUserId,
+          ),
+        ),
         BlocProvider(create: (context) => SubscriptionCubit()),
         BlocProvider(create: (context) => PomodoroCubit()),
       ],

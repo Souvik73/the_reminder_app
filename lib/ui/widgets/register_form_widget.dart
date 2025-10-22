@@ -87,14 +87,16 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
       if (!_agreeToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please agree to the Terms of Service and Privacy Policy'),
+            content: Text(
+              'Please agree to the Terms of Service and Privacy Policy',
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
         return;
       }
-      
+
       widget.onRegister(
         _emailController.text.trim(),
         _passwordController.text,
@@ -175,7 +177,9 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
             validator: _validateConfirmPassword,
             suffixIcon: IconButton(
               icon: Icon(
-                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                _obscureConfirmPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility,
                 color: Colors.grey[600],
               ),
               onPressed: () {
@@ -262,7 +266,10 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
             ),
             filled: true,
             fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
       ],
@@ -271,7 +278,7 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
 
   Widget _buildPasswordRequirements() {
     final password = _passwordController.text;
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -291,10 +298,22 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
             ),
           ),
           const SizedBox(height: 6),
-          _buildPasswordRequirement('At least 8 characters', password.length >= 8),
-          _buildPasswordRequirement('One uppercase letter', RegExp(r'[A-Z]').hasMatch(password)),
-          _buildPasswordRequirement('One lowercase letter', RegExp(r'[a-z]').hasMatch(password)),
-          _buildPasswordRequirement('One number', RegExp(r'\d').hasMatch(password)),
+          _buildPasswordRequirement(
+            'At least 8 characters',
+            password.length >= 8,
+          ),
+          _buildPasswordRequirement(
+            'One uppercase letter',
+            RegExp(r'[A-Z]').hasMatch(password),
+          ),
+          _buildPasswordRequirement(
+            'One lowercase letter',
+            RegExp(r'[a-z]').hasMatch(password),
+          ),
+          _buildPasswordRequirement(
+            'One number',
+            RegExp(r'\d').hasMatch(password),
+          ),
         ],
       ),
     );
@@ -348,10 +367,7 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
               padding: const EdgeInsets.only(top: 12),
               child: Text(
                 'I agree to the Terms of Service and Privacy Policy',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[700],
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ),
           ),

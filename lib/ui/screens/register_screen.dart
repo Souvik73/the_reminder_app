@@ -15,7 +15,8 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMixin {
+class _RegisterPageState extends State<RegisterPage>
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -148,11 +149,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
               color: Colors.white.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.person_add,
-              size: 40,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.person_add, size: 40, color: Colors.white),
           ),
 
           const SizedBox(height: 16),
@@ -254,10 +251,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                 isLoading: state is AuthLoading,
                 onRegister: (email, password, phoneNumber) {
                   context.read<AuthBloc>().add(
-                    EmailSignInRequested(
-                      email: email,
-                      password: password,
-                    ),
+                    EmailSignInRequested(email: email, password: password),
                   );
                 },
                 onLoginPressed: () {

@@ -23,7 +23,9 @@ class ProfileScreen extends StatelessWidget {
     final isPremium = subscriptionState.isPremium;
 
     final theme = Theme.of(context);
-    final progress = hydrationGoal == 0 ? 0.0 : (hydrationLogged / hydrationGoal).clamp(0.0, 1.0);
+    final progress = hydrationGoal == 0
+        ? 0.0
+        : (hydrationLogged / hydrationGoal).clamp(0.0, 1.0);
     final localizations = MaterialLocalizations.of(context);
 
     final recentHydration = hydrationHistory.toList()
@@ -33,7 +35,9 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
       children: [
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           elevation: 2,
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -42,7 +46,11 @@ class ProfileScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
-                  child: Icon(Icons.person_outline, size: 36, color: theme.colorScheme.primary),
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 36,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -51,7 +59,9 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Hey there!',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -63,7 +73,10 @@ class ProfileScreen extends StatelessWidget {
                       if (isPremium) ...[
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
                             color: theme.colorScheme.primary.withOpacity(0.12),
@@ -71,7 +84,11 @@ class ProfileScreen extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.workspace_premium, size: 18, color: theme.colorScheme.primary),
+                              Icon(
+                                Icons.workspace_premium,
+                                size: 18,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Premium active',
@@ -84,28 +101,33 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.manage_accounts_outlined),
-                onPressed: () => _showSubscriptionSheet(context, subscriptionState),
-              ),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.manage_accounts_outlined),
+                  onPressed: () =>
+                      _showSubscriptionSheet(context, subscriptionState),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
         const SizedBox(height: 24),
         Text(
           'Productivity overview',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -115,7 +137,9 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         '${reminders.length}',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -132,7 +156,9 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -142,12 +168,16 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         '${hydrationLogged} / $hydrationGoal ml',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       LinearProgressIndicator(
                         value: progress,
-                        backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                        backgroundColor: theme.colorScheme.primary.withOpacity(
+                          0.12,
+                        ),
                         minHeight: 6,
                       ),
                       const SizedBox(height: 8),
@@ -167,7 +197,9 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 24),
         Text(
           'Recent hydration',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 12),
         if (recentHydration.isEmpty)
@@ -179,7 +211,10 @@ class ProfileScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.water_drop_outlined, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.water_drop_outlined,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -194,20 +229,31 @@ class ProfileScreen extends StatelessWidget {
           )
         else
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: recentHydration.length > 5 ? 5 : recentHydration.length,
+              itemCount: recentHydration.length > 5
+                  ? 5
+                  : recentHydration.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final log = recentHydration[index];
-                final timeLabel = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(log.timestamp));
+                final timeLabel = localizations.formatTimeOfDay(
+                  TimeOfDay.fromDateTime(log.timestamp),
+                );
                 final dateLabel = localizations.formatMediumDate(log.timestamp);
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                    child: Icon(Icons.local_drink, color: theme.colorScheme.primary),
+                    backgroundColor: theme.colorScheme.primary.withOpacity(
+                      0.12,
+                    ),
+                    child: Icon(
+                      Icons.local_drink,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   title: Text('${log.amount} ml logged'),
                   subtitle: Text('$dateLabel • $timeLabel'),
@@ -217,7 +263,9 @@ class ProfileScreen extends StatelessWidget {
           ),
         const SizedBox(height: 24),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -225,7 +273,9 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 Text(
                   'Subscription',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -237,22 +287,28 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _showSubscriptionSheet(context, subscriptionState),
-                child: Text(isPremium ? 'Manage subscription' : 'Upgrade to Premium'),
-              ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        _showSubscriptionSheet(context, subscriptionState),
+                    child: Text(
+                      isPremium ? 'Manage subscription' : 'Upgrade to Premium',
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
           ),
         ),
       ],
     );
   }
 
-  void _showSubscriptionSheet(BuildContext rootContext, SubscriptionState state) {
+  void _showSubscriptionSheet(
+    BuildContext rootContext,
+    SubscriptionState state,
+  ) {
     showModalBottomSheet<void>(
       context: rootContext,
       builder: (sheetContext) => SafeArea(
@@ -268,8 +324,12 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                state.isPremium ? 'Manage your Premium plan' : 'Upgrade to Premium',
-                style: Theme.of(rootContext).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                state.isPremium
+                    ? 'Manage your Premium plan'
+                    : 'Upgrade to Premium',
+                style: Theme.of(
+                  rootContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
@@ -278,8 +338,10 @@ class ProfileScreen extends StatelessWidget {
                     : 'Unlock geofenced reminders, advanced Pomodoro analytics, and an ad-free experience.',
                 textAlign: TextAlign.center,
                 style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(rootContext).colorScheme.onSurface.withOpacity(0.7),
-                    ),
+                  color: Theme.of(
+                    rootContext,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -295,12 +357,18 @@ class ProfileScreen extends StatelessWidget {
                     } else {
                       cubit.upgrade();
                       ScaffoldMessenger.of(rootContext).showSnackBar(
-                        const SnackBar(content: Text('Premium activated. Enjoy the upgrade!')),
+                        const SnackBar(
+                          content: Text(
+                            'Premium activated. Enjoy the upgrade!',
+                          ),
+                        ),
                       );
                     }
                     Navigator.of(sheetContext).pop();
                   },
-                  child: Text(state.isPremium ? 'Downgrade to free' : 'Upgrade now'),
+                  child: Text(
+                    state.isPremium ? 'Downgrade to free' : 'Upgrade now',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

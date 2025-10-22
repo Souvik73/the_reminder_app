@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 
 class PomodoroState extends Equatable {
   final String selectedPreset;
@@ -19,10 +18,10 @@ class PomodoroState extends Equatable {
   });
 
   factory PomodoroState.initial() => const PomodoroState(
-        selectedPreset: '25/5 min',
-        workDuration: Duration(minutes: 25),
-        restDuration: Duration(minutes: 5),
-      );
+    selectedPreset: '25/5 min',
+    workDuration: Duration(minutes: 25),
+    restDuration: Duration(minutes: 5),
+  );
 
   PomodoroState copyWith({
     String? selectedPreset,
@@ -42,10 +41,10 @@ class PomodoroState extends Equatable {
 
   @override
   List<Object?> get props => [
-        selectedPreset,
-        workDuration,
-        restDuration,
-        customWorkDuration,
-        customRestDuration,
-      ];
+    selectedPreset,
+    workDuration,
+    restDuration,
+    customWorkDuration,
+    customRestDuration,
+  ];
 }

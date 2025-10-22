@@ -8,6 +8,15 @@ abstract class ReminderEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class ReminderUserChanged extends ReminderEvent {
+  final String userId;
+
+  const ReminderUserChanged({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
+
 class ReminderUpserted extends ReminderEvent {
   final Reminder reminder;
 

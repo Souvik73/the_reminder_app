@@ -1,14 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
+import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthBloc() : super(AuthInitial()) {
+  AuthBloc({required PlannerRepository plannerRepository})
+    : _plannerRepository = plannerRepository,
+      super(AuthInitial()) {
     on<EmailSignInRequested>(_handleEmailSignIn);
     on<GoogleSignInRequested>(_handleSocialSignIn);
     on<AppleSignInRequested>(_handleSocialSignIn);
     on<SignOutRequested>(_handleSignOut);
   }
+
+  final PlannerRepository _plannerRepository;
 
   Future<void> _handleEmailSignIn(
     EmailSignInRequested event,
@@ -18,7 +23,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       // Replace with real authentication logic when backend is ready.
       await Future.delayed(const Duration(milliseconds: 800));
-      emit(AuthSuccess(userId: 'mock-user', email: event.email));
+      final user = await _plannerRepository.ensureUser(
+        userId: 'mock-user',
+        email: event.email,
+      );
+      emit(AuthSuccess(userId: user.id, email: user.email));
     } catch (error) {
       emit(AuthFailure(message: 'Unable to sign in. Please try again.'));
     }
@@ -33,9 +42,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await Future.delayed(const Duration(milliseconds: 600));
 
       if (event is GoogleSignInRequested) {
-        emit(AuthSuccess(userId: 'google-user', email: 'google-user@example.com'));
+        final user = await _plannerRepository.ensureUser(
+          userId: 'google-user',
+          email: 'google-user@example.com',
+          displayName: 'Google User',
+        );
+        emit(AuthSuccess(userId: user.id, email: user.email));
       } else if (event is AppleSignInRequested) {
-        emit(AuthSuccess(userId: 'apple-user', email: 'apple-user@example.com'));
+        final user = await _plannerRepository.ensureUser(
+          userId: 'apple-user',
+          email: 'apple-user@example.com',
+          displayName: 'Apple User',
+        );
+        emit(AuthSuccess(userId: user.id, email: user.email));
       } else {
         emit(AuthFailure(message: 'Unsupported sign in method.'));
       }
@@ -44,10 +63,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _handleSignOut(
-    SignOutRequested event,
-    Emitter<AuthState> emit,
-  ) {
+  void _handleSignOut(SignOutRequested event, Emitter<AuthState> emit) {
     emit(AuthInitial());
   }
 }

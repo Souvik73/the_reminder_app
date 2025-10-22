@@ -3,46 +3,32 @@ import 'package:the_reminder_app/models/planner_models.dart';
 
 class ReminderState extends Equatable {
   final List<Reminder> reminders;
+  final String activeUserId;
+  final bool isLoading;
 
   const ReminderState({
     required this.reminders,
+    required this.activeUserId,
+    required this.isLoading,
   });
 
-  factory ReminderState.initial() {
-    final now = DateTime.now();
-    final samples = <Reminder>[
-      Reminder(
-        id: 'r1',
-        title: 'Team sync',
-        description: 'Daily stand-up with product team at 10:30 AM.',
-        scheduledAt: now.add(const Duration(hours: 3)),
-        priority: ReminderPriority.high,
-      ),
-      Reminder(
-        id: 'r2',
-        title: 'Pick up groceries',
-        description: 'Include fresh veggies for dinner tonight.',
-        scheduledAt: now.add(const Duration(hours: 6)),
-        priority: ReminderPriority.medium,
-      ),
-      Reminder(
-        id: 'r3',
-        title: 'Read and unwind',
-        description: 'Finish one chapter of the current book.',
-        scheduledAt: now.add(const Duration(hours: 13)),
-        priority: ReminderPriority.low,
-        isVoiceCreated: true,
-      ),
-    ];
-    samples.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-    return ReminderState(reminders: samples);
+  factory ReminderState.initial(String userId) {
+    return ReminderState(
+      reminders: const [],
+      activeUserId: userId,
+      isLoading: true,
+    );
   }
 
   ReminderState copyWith({
     List<Reminder>? reminders,
+    String? activeUserId,
+    bool? isLoading,
   }) {
     return ReminderState(
       reminders: reminders ?? this.reminders,
+      activeUserId: activeUserId ?? this.activeUserId,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 
@@ -64,5 +50,5 @@ class ReminderState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [reminders];
+  List<Object?> get props => [reminders, activeUserId, isLoading];
 }

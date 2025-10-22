@@ -86,7 +86,9 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
             children: [
               Text(
                 _isWorkPhase ? 'Focus time' : 'Rest',
-                style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white70),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white70,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -105,7 +107,11 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
                     iconSize: 48,
                     color: Colors.white,
                     onPressed: _togglePause,
-                    icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
+                    icon: Icon(
+                      _isPaused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                    ),
                   ),
                   const SizedBox(width: 32),
                   IconButton(

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
+import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
+import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
+import 'package:the_reminder_app/blocs/pomodoro/pomodoro_cubit.dart';
 import 'package:the_reminder_app/config/routes.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
@@ -30,6 +35,11 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => injection.locator<AuthBloc>()),
+        BlocProvider(create: (context) => ReminderBloc()),
+        BlocProvider(create: (context) => AlarmCubit()),
+        BlocProvider(create: (context) => HydrationCubit()),
+        BlocProvider(create: (context) => SubscriptionCubit()),
+        BlocProvider(create: (context) => PomodoroCubit()),
       ],
       child: ScreenUtilInit(
         minTextAdapt: true,

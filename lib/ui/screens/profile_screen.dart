@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
+import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 
 class ProfileScreen extends StatelessWidget {
-  final bool isPremium;
-  final int hydrationGoal;
-  final int hydrationLogged;
-  final List<HydrationLog> hydrationHistory;
-  final List<Reminder> reminders;
-  final VoidCallback onSubscriptionTap;
-
-  const ProfileScreen({
-    super.key,
-    required this.isPremium,
-    required this.hydrationGoal,
-    required this.hydrationLogged,
-    required this.hydrationHistory,
-    required this.reminders,
-    required this.onSubscriptionTap,
-  });
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final subscriptionState = context.watch<SubscriptionCubit>().state;
+    final hydrationState = context.watch<HydrationCubit>().state;
+    final reminderState = context.watch<ReminderBloc>().state;
+    final reminders = reminderState.reminders;
+    final hydrationGoal = hydrationState.dailyGoal;
+    final hydrationLogged = hydrationState.totalIntake;
+    final hydrationHistory = hydrationState.logs;
+    final isPremium = subscriptionState.isPremium;
+
     final theme = Theme.of(context);
     final progress = hydrationGoal == 0 ? 0.0 : (hydrationLogged / hydrationGoal).clamp(0.0, 1.0);
     final localizations = MaterialLocalizations.of(context);
@@ -83,17 +84,17 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ],
-                  ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.manage_accounts_outlined),
-                  onPressed: onSubscriptionTap,
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.manage_accounts_outlined),
+                onPressed: () => _showSubscriptionSheet(context, subscriptionState),
+              ),
+            ],
           ),
         ),
+      ),
         const SizedBox(height: 24),
         Text(
           'Productivity overview',
@@ -236,18 +237,81 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: onSubscriptionTap,
-                    child: Text(isPremium ? 'Manage subscription' : 'Upgrade to Premium'),
-                  ),
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _showSubscriptionSheet(context, subscriptionState),
+                child: Text(isPremium ? 'Manage subscription' : 'Upgrade to Premium'),
+              ),
             ),
+          ],
+        ),
           ),
         ),
       ],
+    );
+  }
+
+  void _showSubscriptionSheet(BuildContext rootContext, SubscriptionState state) {
+    showModalBottomSheet<void>(
+      context: rootContext,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.workspace_premium_outlined,
+                size: 48,
+                color: Theme.of(rootContext).colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                state.isPremium ? 'Manage your Premium plan' : 'Upgrade to Premium',
+                style: Theme.of(rootContext).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                state.isPremium
+                    ? 'Adjust your subscription, manage billing, or contact support.'
+                    : 'Unlock geofenced reminders, advanced Pomodoro analytics, and an ad-free experience.',
+                textAlign: TextAlign.center,
+                style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(rootContext).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final cubit = rootContext.read<SubscriptionCubit>();
+                    if (state.isPremium) {
+                      cubit.downgrade();
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
+                        const SnackBar(content: Text('Premium disabled.')),
+                      );
+                    } else {
+                      cubit.upgrade();
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
+                        const SnackBar(content: Text('Premium activated. Enjoy the upgrade!')),
+                      );
+                    }
+                    Navigator.of(sheetContext).pop();
+                  },
+                  child: Text(state.isPremium ? 'Downgrade to free' : 'Upgrade now'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

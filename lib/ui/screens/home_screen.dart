@@ -1,6 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
+import 'package:the_reminder_app/blocs/alarm/alarm_state.dart';
+import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
+import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
+import 'package:the_reminder_app/blocs/pomodoro/pomodoro_cubit.dart';
+import 'package:the_reminder_app/blocs/pomodoro/pomodoro_state.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_event.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
+import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/screens/calendar_screen.dart';
 import 'package:the_reminder_app/ui/screens/pomodoro_session_screen.dart';
@@ -16,29 +28,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController _quickReminderController =
+      TextEditingController();
   int _currentIndex = 0;
-  bool _isPremiumUser = false;
-
-  final TextEditingController _quickReminderController = TextEditingController();
-  final List<Reminder> _reminders = <Reminder>[];
-  final Set<String> _completedReminderIds = <String>{};
-  final List<AlarmEntry> _alarms = <AlarmEntry>[];
-  final List<HydrationLog> _hydrationHistory = <HydrationLog>[];
-
-  int _hydrationGoal = 2500;
-  int _hydrationLogged = 0;
-
-  String _selectedPomodoroPreset = '25/5 min';
-  Duration? _customWorkDuration;
-  Duration? _customRestDuration;
-
-  List<String> get _pomodoroPresets => const ['25/5 min', '15/5 min', '50/10 min', 'Custom'];
-
-  @override
-  void initState() {
-    super.initState();
-    _seedInitialData();
-  }
 
   @override
   void dispose() {
@@ -46,137 +38,93 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _seedInitialData() {
-    if (_reminders.isEmpty) {
-      final now = DateTime.now();
-      _reminders.addAll([
-        Reminder(
-          id: 'r1',
-          title: 'Team sync',
-          description: 'Daily stand-up with product team at 10:30 AM.',
-          scheduledAt: now.add(const Duration(hours: 3)),
-          priority: ReminderPriority.high,
-        ),
-        Reminder(
-          id: 'r2',
-          title: 'Pick up groceries',
-          description: 'Include fresh veggies for dinner tonight.',
-          scheduledAt: now.add(const Duration(hours: 6)),
-          priority: ReminderPriority.medium,
-        ),
-        Reminder(
-          id: 'r3',
-          title: 'Read and unwind',
-          description: 'Finish one chapter of the current book.',
-          scheduledAt: now.add(const Duration(hours: 13)),
-          priority: ReminderPriority.low,
-          isVoiceCreated: true,
-        ),
-      ]);
-      _reminders.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-    }
-
-    if (_hydrationHistory.isEmpty) {
-      final now = DateTime.now();
-      _hydrationHistory.addAll([
-        HydrationLog(id: 'h1', amount: 400, timestamp: now.subtract(const Duration(hours: 2))),
-        HydrationLog(id: 'h2', amount: 250, timestamp: now.subtract(const Duration(hours: 5))),
-        HydrationLog(id: 'h3', amount: 300, timestamp: now.subtract(const Duration(hours: 9))),
-      ]);
-      _hydrationLogged = _hydrationHistory.fold(0, (total, log) => total + log.amount);
-    }
-
-    if (_alarms.isEmpty) {
-      _alarms.addAll([
-        const AlarmEntry(
-          id: 'a1',
-          time: TimeOfDay(hour: 7, minute: 0),
-          recurrence: 'Daily',
-          label: 'Morning routine',
-        ),
-        const AlarmEntry(
-          id: 'a2',
-          time: TimeOfDay(hour: 21, minute: 30),
-          recurrence: 'Every 2 days',
-          label: 'Medication check',
-        ),
-      ]);
-    }
-  }
-
-  List<Reminder> get _activeReminders =>
-      _reminders.where((reminder) => !_completedReminderIds.contains(reminder.id)).toList();
-
-  Map<ReminderPriority, List<Reminder>> _groupRemindersByPriority() {
-    final grouped = <ReminderPriority, List<Reminder>>{
-      ReminderPriority.high: [],
-      ReminderPriority.medium: [],
-      ReminderPriority.low: [],
-    };
-
-    for (final reminder in _activeReminders) {
-      grouped[reminder.priority]?.add(reminder);
-    }
-
-    for (final list in grouped.values) {
-      list.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-    }
-
-    return grouped;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final reminderState = context.watch<ReminderBloc>().state;
+    final alarmState = context.watch<AlarmCubit>().state;
+    final hydrationState = context.watch<HydrationCubit>().state;
+    final subscriptionState = context.watch<SubscriptionCubit>().state;
+    final pomodoroState = context.watch<PomodoroCubit>().state;
+
     final titles = ['Home', 'Calendar', 'Settings', 'Profile'];
-    final theme = Theme.of(context);
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: _buildDrawer(theme),
+      drawer: _HomeDrawer(
+        currentIndex: _currentIndex,
+        onDestinationSelected: _setIndex,
+        isPremium: subscriptionState.isPremium,
+        onSubscriptionTap: _showSubscriptionSheet,
+      ),
       appBar: AppBar(
         title: Text(titles[_currentIndex]),
         centerTitle: true,
-        actions: _buildAppBarActions(),
+        actions: _buildAppBarActions(subscriptionState),
       ),
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          _buildHomeTab(theme),
-          CalendarScreen(reminders: _activeReminders, alarms: _alarms),
-          SettingsScreen(
-            isPremium: _isPremiumUser,
-            hydrationGoal: _hydrationGoal,
-            onPremiumChanged: _togglePremium,
-            onHydrationGoalChanged: _updateHydrationGoal,
-            onPurchaseTap: _handlePurchasePremium,
-            onRestorePurchases: _handleRestorePurchases,
+          _buildHomeTab(
+            reminderState,
+            alarmState,
+            hydrationState,
+            subscriptionState,
+            pomodoroState,
           ),
-          ProfileScreen(
-            isPremium: _isPremiumUser,
-            hydrationGoal: _hydrationGoal,
-            hydrationLogged: _hydrationLogged,
-            hydrationHistory: _hydrationHistory,
-            reminders: _activeReminders,
-            onSubscriptionTap: _handleSubscriptionTap,
+          const CalendarScreen(),
+          const SettingsScreen(),
+          const ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
-      floatingActionButton: _buildFab(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          _showCreationSheet();
+        },
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New'),
+      ),
     );
   }
 
-  List<Widget> _buildAppBarActions() {
+  List<Widget> _buildAppBarActions(SubscriptionState subscriptionState) {
     switch (_currentIndex) {
       case 0:
         return [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: _handleSearch,
+            onPressed: _showReminderSearch,
           ),
           IconButton(
             icon: const Icon(Icons.mic_none_outlined),
-            onPressed: _handleVoiceCapture,
+            onPressed: () {
+              _handleVoiceCapture();
+            },
           ),
         ];
       case 1:
@@ -193,8 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case 3:
         return [
           IconButton(
-            icon: const Icon(Icons.manage_accounts_outlined),
-            onPressed: _handleSubscriptionTap,
+            icon: const Icon(Icons.workspace_premium_outlined),
+            onPressed: _showSubscriptionSheet,
+            tooltip: subscriptionState.isPremium
+                ? 'Manage subscription'
+                : 'Upgrade to Premium',
           ),
         ];
       default:
@@ -202,256 +153,104 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Drawer _buildDrawer(ThemeData theme) {
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primaryContainer,
-                  ],
-                ),
-              ),
-              accountName: Text(_isPremiumUser ? 'Premium member' : 'Guest'),
-              accountEmail: const Text('Stay on top of your day'),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person_outline,
-                  size: 36,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-            _DrawerTile(
-              icon: Icons.home_outlined,
-              label: 'Home',
-              onTap: () => _setIndex(0),
-            ),
-            _DrawerTile(
-              icon: Icons.calendar_month_outlined,
-              label: 'Calendar',
-              onTap: () => _setIndex(1),
-            ),
-            _DrawerTile(
-              icon: Icons.settings_outlined,
-              label: 'Settings',
-              onTap: () => _setIndex(2),
-            ),
-            _DrawerTile(
-              icon: Icons.person_outline,
-              label: 'Profile',
-              onTap: () => _setIndex(3),
-            ),
-            const Divider(),
-          ]
-            ..add(
-              _DrawerTile(
-                icon: Icons.workspace_premium_outlined,
-                label: _isPremiumUser ? 'Manage subscription' : 'Upgrade to Premium',
-                onTap: _handleSubscriptionTap,
-              ),
-            )
-            ..add(
-              _DrawerTile(
-                icon: Icons.help_outline,
-                label: 'Help & support',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Support center coming soon.')),
-                  );
-                },
-              ),
-            )
-            ..add(const Spacer())
-            ..add(
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Swipe reminders up to mark them complete. Use undo if you change your mind.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ),
-      ),
-    );
-  }
-
-  void _setIndex(int index) {
-    Navigator.of(context).pop();
-    setState(() => _currentIndex = index);
-  }
-
-  Widget _buildHomeTab(ThemeData theme) {
+  Widget _buildHomeTab(
+    ReminderState reminderState,
+    AlarmState alarmState,
+    HydrationState hydrationState,
+    SubscriptionState subscriptionState,
+    PomodoroState pomodoroState,
+  ) {
+    final grouped = reminderState.remindersByPriority;
+    final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    final grouped = _groupRemindersByPriority();
 
     return RefreshIndicator(
-      onRefresh: () async {
-        await Future<void>.delayed(const Duration(milliseconds: 600));
-      },
+      onRefresh: () async =>
+          Future<void>.delayed(const Duration(milliseconds: 600)),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
         children: [
-          _buildQuickEntryCard(theme),
+          _QuickEntryCard(
+            controller: _quickReminderController,
+            onTextSubmitted: _createReminderFromText,
+            onVoicePressed: () {
+              _handleVoiceCapture();
+            },
+            onAlarmPressed: () {
+              _openAlarmComposer();
+            },
+          ),
           const SizedBox(height: 24),
-          if (_activeReminders.isEmpty) _buildEmptyRemindersState(theme),
-          if (grouped[ReminderPriority.high]!.isNotEmpty)
-            _buildReminderSection(
-              title: 'High priority',
-              accent: ReminderPriority.high.color,
-              reminders: grouped[ReminderPriority.high]!,
-              theme: theme,
-              localizations: localizations,
-            ),
-          if (grouped[ReminderPriority.medium]!.isNotEmpty)
-            _buildReminderSection(
-              title: 'Medium priority',
-              accent: ReminderPriority.medium.color,
-              reminders: grouped[ReminderPriority.medium]!,
-              theme: theme,
-              localizations: localizations,
-            ),
-          if (grouped[ReminderPriority.low]!.isNotEmpty)
-            _buildReminderSection(
-              title: 'Low priority',
-              accent: ReminderPriority.low.color,
-              reminders: grouped[ReminderPriority.low]!,
-              theme: theme,
-              localizations: localizations,
-            ),
+          if (reminderState.activeReminders.isEmpty)
+            _buildEmptyRemindersState(theme)
+          else ...[
+            if (grouped[ReminderPriority.high]!.isNotEmpty)
+              _ReminderSection(
+                title: 'High priority',
+                accent: ReminderPriority.high.color,
+                reminders: grouped[ReminderPriority.high]!,
+                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
+                onDelete: _deleteReminder,
+                onComplete: _completeReminder,
+              ),
+            if (grouped[ReminderPriority.medium]!.isNotEmpty)
+              _ReminderSection(
+                title: 'Medium priority',
+                accent: ReminderPriority.medium.color,
+                reminders: grouped[ReminderPriority.medium]!,
+                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
+                onDelete: _deleteReminder,
+                onComplete: _completeReminder,
+              ),
+            if (grouped[ReminderPriority.low]!.isNotEmpty)
+              _ReminderSection(
+                title: 'Low priority',
+                accent: ReminderPriority.low.color,
+                reminders: grouped[ReminderPriority.low]!,
+                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
+                onDelete: _deleteReminder,
+                onComplete: _completeReminder,
+              ),
+          ],
           const SizedBox(height: 24),
-          _buildAlarmCard(theme, localizations),
+          _AlarmCard(
+            alarmState: alarmState,
+            onCreate: _openAlarmComposer,
+            onEdit: _openAlarmComposer,
+            onDelete: _deleteAlarm,
+          ),
           const SizedBox(height: 24),
-          _buildHydrationCard(theme),
+          _HydrationGoalCard(
+            hydrationState: hydrationState,
+            onQuickLog: _logHydration,
+            onCustomLog: _openHydrationLogSheet,
+            onSetGoal: _openHydrationGoalDialog,
+          ),
           const SizedBox(height: 16),
-          _buildWaterHistoryCard(theme, localizations),
+          _HydrationHistoryCard(hydrationState: hydrationState),
           const SizedBox(height: 16),
-          _buildPomodoroCard(theme),
+          _PomodoroCard(
+            pomodoroState: pomodoroState,
+            onPresetSelected: _selectPomodoroPreset,
+            onCustomRequested: _selectCustomIntervals,
+            onStartSession: _startPomodoroSession,
+          ),
           const SizedBox(height: 16),
-          _buildGeofenceCard(theme),
-          if (!_isPremiumUser) ...[
+          _GeofenceCard(
+            reminderState: reminderState,
+            isPremium: subscriptionState.isPremium,
+            onCreateGeofence: () {
+              _openReminderComposer(
+                initialTitle: 'Reminder when I arrive at...',
+              );
+            },
+            onUpgrade: _showSubscriptionSheet,
+          ),
+          if (!subscriptionState.isPremium) ...[
             const SizedBox(height: 16),
-            _buildAdBanner(theme),
+            _AdBanner(onUpgrade: _showSubscriptionSheet),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickEntryCard(ThemeData theme) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: _quickReminderController,
-              decoration: InputDecoration(
-                labelText: 'Quick reminder',
-                hintText: 'e.g. Call the dentist tomorrow at 9am',
-                prefixIcon: const Icon(Icons.edit_outlined),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send_rounded),
-                  onPressed: _createReminderFromText,
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _createReminderFromText(),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.mic_none_outlined),
-                    label: const Text('Capture voice'),
-                    onPressed: _handleVoiceCapture,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.alarm_add_outlined),
-                    label: const Text('Create alarm'),
-                    onPressed: () => _openAlarmComposer(),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReminderSection({
-    required String title,
-    required Color accent,
-    required List<Reminder> reminders,
-    required ThemeData theme,
-    required MaterialLocalizations localizations,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  Text(
-                    '${reminders.length} upcoming',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...reminders.map(
-                (reminder) => _ReminderTile(
-                  reminder: reminder,
-                  accent: accent,
-                  onEdit: () => _openReminderComposer(reminder: reminder),
-                  onDelete: () => _deleteReminder(reminder),
-                  onCompleted: () => _markReminderComplete(reminder),
-                  localizations: localizations,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -465,7 +264,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.notifications_none_rounded, size: 36, color: theme.colorScheme.primary),
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 36,
+            color: theme.colorScheme.primary,
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
@@ -480,406 +283,762 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAlarmCard(ThemeData theme, MaterialLocalizations localizations) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                child: Icon(Icons.alarm_outlined, color: theme.colorScheme.primary),
-              ),
-              title: const Text('Recurring alarms'),
-              subtitle: const Text('Stay consistent with your routines.'),
-              trailing: IconButton(
-                icon: const Icon(Icons.add_rounded),
-                onPressed: () => _openAlarmComposer(),
-              ),
-            ),
-            if (_alarms.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
+  void _setIndex(int index) {
+    Navigator.of(context).pop();
+    setState(() => _currentIndex = index);
+  }
+
+  void _createReminderFromText() {
+    final text = _quickReminderController.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a reminder description first.')),
+      );
+      return;
+    }
+    context.read<ReminderBloc>().add(ReminderCreatedFromText(text));
+    _quickReminderController.clear();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reminder created.')));
+  }
+
+  Future<void> _openReminderComposer({
+    Reminder? reminder,
+    String? initialTitle,
+    bool isVoice = false,
+  }) async {
+    final subscriptionState = context.read<SubscriptionCubit>().state;
+    final titleController = TextEditingController(
+      text: initialTitle ?? reminder?.title ?? '',
+    );
+    final notesController = TextEditingController(
+      text: reminder?.description ?? '',
+    );
+    DateTime scheduledAt =
+        reminder?.scheduledAt ?? DateTime.now().add(const Duration(hours: 1));
+    ReminderPriority priority = reminder?.priority ?? ReminderPriority.medium;
+    bool isVoiceCreated = reminder?.isVoiceCreated ?? isVoice;
+    bool geofenced = reminder?.isGeofenced ?? false;
+    String? locationName = reminder?.locationName;
+
+    final updated = await showModalBottomSheet<Reminder>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: theme.colorScheme.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'No alarms yet. Create one to get repeating alerts.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    Text(
+                      reminder == null ? 'Create reminder' : 'Edit reminder',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        hintText: 'What should we remind you about?',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes',
+                        hintText: 'Add details or context (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.event_outlined),
+                            label: Text(
+                              MaterialLocalizations.of(
+                                context,
+                              ).formatMediumDate(scheduledAt),
+                            ),
+                            onPressed: () async {
+                              final pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: scheduledAt,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (pickedDate != null) {
+                                final pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.fromDateTime(
+                                    scheduledAt,
+                                  ),
+                                );
+                                setModalState(() {
+                                  scheduledAt = DateTime(
+                                    pickedDate.year,
+                                    pickedDate.month,
+                                    pickedDate.day,
+                                    pickedTime?.hour ?? scheduledAt.hour,
+                                    pickedTime?.minute ?? scheduledAt.minute,
+                                  );
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<ReminderPriority>(
+                            value: priority,
+                            decoration: const InputDecoration(
+                              labelText: 'Priority',
+                            ),
+                            items: ReminderPriority.values
+                                .map(
+                                  (priority) => DropdownMenuItem(
+                                    value: priority,
+                                    child: Text(priority.label),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setModalState(() => priority = value);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: isVoiceCreated,
+                      onChanged: (value) =>
+                          setModalState(() => isVoiceCreated = value),
+                      title: const Text('Captured via voice'),
+                      subtitle: const Text(
+                        'Track reminders created with voice commands.',
+                      ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: subscriptionState.isPremium && geofenced,
+                      onChanged: (value) async {
+                        if (!subscriptionState.isPremium) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Upgrade to Premium to enable geofenced reminders.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        if (value) {
+                          final selected = await _pickLocation();
+                          if (selected != null) {
+                            setModalState(() {
+                              geofenced = true;
+                              locationName = selected;
+                            });
+                          }
+                        } else {
+                          setModalState(() {
+                            geofenced = false;
+                            locationName = null;
+                          });
+                        }
+                      },
+                      title: const Text('Trigger on arrival'),
+                      subtitle: Text(
+                        !subscriptionState.isPremium
+                            ? 'Premium feature'
+                            : locationName == null
+                            ? 'Select a location to trigger this reminder.'
+                            : 'Location: $locationName',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final title = titleController.text.trim();
+                          if (title.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please add a title to your reminder.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final id =
+                              reminder?.id ??
+                              DateTime.now().microsecondsSinceEpoch.toString();
+                          Navigator.of(context).pop(
+                            Reminder(
+                              id: id,
+                              title: title,
+                              description: notesController.text.trim(),
+                              scheduledAt: scheduledAt,
+                              priority: priority,
+                              isVoiceCreated: isVoiceCreated,
+                              isGeofenced:
+                                  subscriptionState.isPremium &&
+                                  geofenced &&
+                                  locationName != null,
+                              locationName: subscriptionState.isPremium
+                                  ? locationName
+                                  : null,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          reminder == null ? 'Create' : 'Save changes',
                         ),
                       ),
                     ),
                   ],
                 ),
-              )
-            else
-              ..._alarms.map((alarm) {
-                final timeLabel = localizations.formatTimeOfDay(alarm.time);
-                return ListTile(
-                  leading: const Icon(Icons.schedule_outlined),
-                  title: Text(alarm.label),
-                  subtitle: Text('${alarm.recurrence} • $timeLabel'),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _openAlarmComposer(existing: alarm);
-                      } else if (value == 'delete') {
-                        _deleteAlarm(alarm);
-                      }
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Text('Edit'),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete'),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHydrationCard(ThemeData theme) {
-    final progress = _hydrationGoal == 0 ? 0.0 : (_hydrationLogged / _hydrationGoal).clamp(0.0, 1.0);
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                  child: Icon(Icons.local_drink_outlined, color: theme.colorScheme.primary),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Hydration goal',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _openHydrationGoalDialog,
-                  child: const Text('Set goal'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '$_hydrationLogged / $_hydrationGoal ml',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                FilledButton.tonal(
-                  onPressed: () => _addHydrationEntry(200),
-                  child: const Text('+200 ml'),
-                ),
-                FilledButton.tonal(
-                  onPressed: () => _addHydrationEntry(400),
-                  child: const Text('+400 ml'),
-                ),
-                OutlinedButton(
-                  onPressed: _openHydrationLogSheet,
-                  child: const Text('Custom amount'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWaterHistoryCard(ThemeData theme, MaterialLocalizations localizations) {
-    final history = _hydrationHistory.toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Hydration history'),
-              subtitle: const Text('Track how consistent you are each day.'),
-              trailing: IconButton(
-                icon: const Icon(Icons.history),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Detailed hydration analytics coming soon.')),
-                  );
-                },
-              ),
-            ),
-            if (history.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'No history yet. Log your water to see it here.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-              )
-            else
-              ...history.take(5).map((log) {
-                final timeLabel = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(log.timestamp));
-                final dateLabel = localizations.formatMediumDate(log.timestamp);
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    child: Icon(Icons.water_drop_outlined, color: theme.colorScheme.primary),
-                  ),
-                  title: Text('${log.amount} ml added'),
-                  subtitle: Text('$dateLabel • $timeLabel'),
-                );
-              }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPomodoroCard(ThemeData theme) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                  child: Icon(Icons.hourglass_bottom_outlined, color: theme.colorScheme.primary),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Pomodoro focus',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: _pomodoroPresets.map((preset) {
-                String label = preset;
-                if (preset == 'Custom' && _customWorkDuration != null && _customRestDuration != null) {
-                  label = 'Custom ${_customWorkDuration!.inMinutes}/${_customRestDuration!.inMinutes} min';
-                }
-                return ChoiceChip(
-                  label: Text(label),
-                  selected: _selectedPomodoroPreset == preset,
-                  onSelected: (selected) async {
-                    if (!selected) return;
-                    if (preset == 'Custom') {
-                      final config = await _selectCustomIntervals();
-                      if (config != null) {
-                        setState(() {
-                          _selectedPomodoroPreset = preset;
-                          _customWorkDuration = config.work;
-                          _customRestDuration = config.rest;
-                        });
-                      }
-                    } else {
-                      setState(() {
-                        _selectedPomodoroPreset = preset;
-                        _customWorkDuration = null;
-                        _customRestDuration = null;
-                      });
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _startSelectedPomodoro();
-                },
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Start Pomodoro'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGeofenceCard(ThemeData theme) {
-    final geofencedReminders = _activeReminders.where((reminder) => reminder.isGeofenced).toList();
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                  child: Icon(Icons.location_on_outlined, color: theme.colorScheme.primary),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Location-based reminders',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _isPremiumUser
-                  ? 'Trigger reminders when you arrive at a selected place.'
-                  : 'Upgrade to Premium to unlock geofenced reminders.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.add_location_alt_outlined),
-                label: Text(_isPremiumUser ? 'Create geofenced reminder' : 'See premium benefits'),
-                onPressed: _isPremiumUser
-                    ? () => _openReminderComposer(initialTitle: 'Reminder when I arrive at...', isVoiceCreated: false)
-                    : _handleSubscriptionTap,
-              ),
-            ),
-            if (geofencedReminders.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: geofencedReminders.map((reminder) {
-                  final location = reminder.locationName ?? 'Location';
-                  return Chip(
-                    avatar: const Icon(Icons.location_pin, size: 16),
-                    label: Text(location),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdBanner(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.secondaryContainer,
-            theme.colorScheme.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.campaign_outlined, size: 32, color: theme.colorScheme.onSecondary),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Ad — Upgrade to Premium to enjoy an ad-free experience.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+              );
+            },
           ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: _handlePurchasePremium,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.onSecondary,
-              foregroundColor: theme.colorScheme.secondary,
+        );
+      },
+    );
+
+    titleController.dispose();
+    notesController.dispose();
+
+    if (updated != null) {
+      context.read<ReminderBloc>().add(ReminderUpserted(reminder: updated));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reminder "${updated.title}" saved.')),
+      );
+    }
+  }
+
+  void _deleteReminder(Reminder reminder) {
+    context.read<ReminderBloc>().add(ReminderDeleted(reminderId: reminder.id));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Reminder "${reminder.title}" deleted.')),
+    );
+  }
+
+  void _completeReminder(Reminder reminder) {
+    context.read<ReminderBloc>().add(ReminderCompleted(reminder: reminder));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Marked "${reminder.title}" as complete.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            context.read<ReminderBloc>().add(
+              ReminderCompletionUndone(reminder: reminder),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _pickLocation() async {
+    const options = ['Home', 'Work', 'Gym', 'Supermarket', 'Pharmacy'];
+    return showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Select a location'),
+        children: [
+          for (final option in options)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(option),
+              child: Text(option),
             ),
-            child: const Text('Upgrade'),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
           ),
         ],
       ),
     );
   }
 
-  NavigationBar _buildBottomNavigationBar() {
-    return NavigationBar(
-      selectedIndex: _currentIndex,
-      onDestinationSelected: (index) => setState(() => _currentIndex = index),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home_rounded),
-          label: 'Home',
+  Future<void> _openAlarmComposer({AlarmEntry? existing}) async {
+    final labelController = TextEditingController(text: existing?.label ?? '');
+    TimeOfDay selectedTime = existing?.time ?? TimeOfDay.now();
+    const recurrenceOptions = [
+      'Daily',
+      'Weekdays',
+      'Weekends',
+      'Weekly',
+      'Custom',
+    ];
+    String recurrence = existing?.recurrence ?? 'Daily';
+    String customRecurrence =
+        existing != null && !recurrenceOptions.contains(existing.recurrence)
+        ? existing.recurrence
+        : 'Every 3 days';
+    bool isCustom =
+        recurrence == 'Custom' || (!recurrenceOptions.contains(recurrence));
+
+    final result = await showModalBottomSheet<AlarmEntry>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      existing == null ? 'Create alarm' : 'Edit alarm',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: labelController,
+                      decoration: const InputDecoration(
+                        labelText: 'Alarm label',
+                        hintText: 'e.g. Morning workout',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.access_time),
+                      label: Text(
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatTimeOfDay(selectedTime),
+                      ),
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: selectedTime,
+                        );
+                        if (picked != null) {
+                          setModalState(() => selectedTime = picked);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: recurrenceOptions.map((option) {
+                        final selected = isCustom
+                            ? option == 'Custom'
+                            : recurrence == option;
+                        return ChoiceChip(
+                          label: Text(option),
+                          selected: selected,
+                          onSelected: (value) {
+                            if (!value) return;
+                            setModalState(() {
+                              if (option == 'Custom') {
+                                isCustom = true;
+                                recurrence = 'Custom';
+                              } else {
+                                isCustom = false;
+                                recurrence = option;
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    if (isCustom) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Custom interval',
+                          hintText: 'e.g. Every 3 days',
+                        ),
+                        onChanged: (value) => customRecurrence = value,
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final label = labelController.text.trim().isEmpty
+                              ? 'Alarm'
+                              : labelController.text.trim();
+                          final recurrenceLabel = isCustom
+                              ? customRecurrence.trim()
+                              : recurrence;
+                          Navigator.of(context).pop(
+                            AlarmEntry(
+                              id:
+                                  existing?.id ??
+                                  DateTime.now().microsecondsSinceEpoch
+                                      .toString(),
+                              time: selectedTime,
+                              recurrence: recurrenceLabel.isEmpty
+                                  ? 'Custom interval'
+                                  : recurrenceLabel,
+                              label: label,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          existing == null ? 'Create alarm' : 'Save changes',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    labelController.dispose();
+
+    if (result != null) {
+      context.read<AlarmCubit>().upsertAlarm(result);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Alarm "${result.label}" saved.')));
+    }
+  }
+
+  void _deleteAlarm(AlarmEntry alarm) {
+    context.read<AlarmCubit>().deleteAlarm(alarm.id);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Alarm "${alarm.label}" removed.')));
+  }
+
+  void _logHydration(int amount) {
+    context.read<HydrationCubit>().logIntake(amount);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Logged $amount ml of water.')));
+  }
+
+  Future<void> _openHydrationLogSheet() async {
+    final controller = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Log water intake',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _logHydration(200);
+                    },
+                    child: const Text('+200 ml'),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _logHydration(400);
+                    },
+                    child: const Text('+400 ml'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Custom amount (ml)',
+                  hintText: 'Enter amount in milliliters',
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final value = int.tryParse(controller.text.trim());
+                    if (value == null || value <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Enter a positive amount.'),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    _logHydration(value);
+                  },
+                  child: const Text('Log hydration'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    controller.dispose();
+  }
+
+  Future<void> _openHydrationGoalDialog() async {
+    final hydrationState = context.read<HydrationCubit>().state;
+    final controller = TextEditingController(
+      text: hydrationState.dailyGoal.toString(),
+    );
+    final newGoal = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set hydration goal'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'Daily goal in ml'),
         ),
-        NavigationDestination(
-          icon: Icon(Icons.calendar_month_outlined),
-          selectedIcon: Icon(Icons.calendar_month),
-          label: 'Calendar',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings_rounded),
-          label: 'Settings',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim());
+              if (value == null || value < 1000) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter at least 1000 ml.')),
+                );
+                return;
+              }
+              Navigator.of(context).pop(value);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newGoal != null) {
+      context.read<HydrationCubit>().setDailyGoal(newGoal);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hydration goal set to $newGoal ml.')),
+      );
+    }
+  }
+
+  Future<void> _handleVoiceCapture() async {
+    final recognized = await _simulateVoiceCapture();
+    if (recognized != null && recognized.isNotEmpty) {
+      _openReminderComposer(initialTitle: recognized, isVoice: true);
+    }
+  }
+
+  Future<String?> _simulateVoiceCapture() async {
+    const suggestions = [
+      'Call Dr. Singh tomorrow at 9am',
+      'Buy birthday gift when near the mall',
+      'Start Pomodoro at 3pm for coding session',
+    ];
+    return showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Simulated voice input'),
+        children: [
+          for (final suggestion in suggestions)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(suggestion),
+              child: Text(suggestion),
+            ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Try again'),
+          ),
+        ],
+      ),
     );
   }
 
-  FloatingActionButton _buildFab() {
-    return FloatingActionButton.extended(
-      onPressed: _showCreationSheet,
-      icon: const Icon(Icons.add_rounded),
-      label: const Text('New'),
+  Future<_PomodoroConfig?> _selectCustomIntervals() async {
+    final pomodoroState = context.read<PomodoroCubit>().state;
+    final workController = TextEditingController(
+      text: (pomodoroState.customWorkDuration ?? pomodoroState.workDuration)
+          .inMinutes
+          .toString(),
+    );
+    final restController = TextEditingController(
+      text: (pomodoroState.customRestDuration ?? pomodoroState.restDuration)
+          .inMinutes
+          .toString(),
+    );
+    final config = await showDialog<_PomodoroConfig>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Custom Pomodoro'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: workController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Focus minutes'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: restController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Rest minutes'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final work = int.tryParse(workController.text.trim());
+              final rest = int.tryParse(restController.text.trim());
+              if (work == null || work <= 0 || rest == null || rest < 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Use positive numbers for custom intervals.'),
+                  ),
+                );
+                return;
+              }
+              Navigator.of(context).pop(
+                _PomodoroConfig(
+                  Duration(minutes: work),
+                  Duration(minutes: rest),
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    workController.dispose();
+    restController.dispose();
+
+    if (config != null) {
+      context.read<PomodoroCubit>().setCustomDurations(
+        config.work,
+        config.rest,
+      );
+    }
+    return config;
+  }
+
+  void _selectPomodoroPreset(String preset) {
+    final pomodoroCubit = context.read<PomodoroCubit>();
+    pomodoroCubit.selectPreset(preset);
+    if (preset == 'Custom' && pomodoroCubit.state.customWorkDuration == null) {
+      _selectCustomIntervals();
+    }
+  }
+
+  void _startPomodoroSession() {
+    final state = context.read<PomodoroCubit>().state;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PomodoroSessionScreen(
+          workDuration: state.workDuration,
+          restDuration: state.restDuration,
+        ),
+      ),
+    );
+  }
+
+  void _showReminderSearch() {
+    final reminders = context.read<ReminderBloc>().state.reminders;
+    final rootContext = context;
+    showModalBottomSheet<void>(
+      context: rootContext,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: reminders.isEmpty
+                ? const Text('No reminders to search through yet.')
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: reminders
+                        .map(
+                          (reminder) => ListTile(
+                            leading: const Icon(Icons.search),
+                            title: Text(reminder.title),
+                            subtitle: Text(
+                              reminder.description.isEmpty
+                                  ? reminder.priority.label
+                                  : reminder.description,
+                            ),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              ScaffoldMessenger.of(rootContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Open reminder "${reminder.title}"',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                        .toList(),
+                  ),
+          ),
+        );
+      },
     );
   }
 
@@ -928,7 +1087,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text('Start Pomodoro session'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _startSelectedPomodoro();
+                  _startPomodoroSession();
                 },
               ),
             ],
@@ -938,776 +1097,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _createReminderFromText() {
-    final text = _quickReminderController.text.trim();
-    if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a reminder description first.')),
-      );
-      return;
-    }
-    final reminder = Reminder(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      title: text,
-      description: '',
-      scheduledAt: DateTime.now().add(const Duration(hours: 2)),
-      priority: ReminderPriority.medium,
-    );
-    _quickReminderController.clear();
-    _saveReminder(reminder);
-  }
-
-  void _saveReminder(Reminder reminder) {
-    setState(() {
-      final index = _reminders.indexWhere((element) => element.id == reminder.id);
-      if (index >= 0) {
-        _reminders[index] = reminder;
-      } else {
-        _reminders.add(reminder);
-      }
-      _reminders.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-      _completedReminderIds.remove(reminder.id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder "${reminder.title}" saved.')),
-    );
-  }
-
-  void _deleteReminder(Reminder reminder) {
-    setState(() {
-      _reminders.removeWhere((element) => element.id == reminder.id);
-      _completedReminderIds.remove(reminder.id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder "${reminder.title}" deleted.')),
-    );
-  }
-
-  void _markReminderComplete(Reminder reminder) {
-    final index = _reminders.indexWhere((element) => element.id == reminder.id);
-    setState(() {
-      _completedReminderIds.add(reminder.id);
-      if (index >= 0) {
-        _reminders.removeAt(index);
-      }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Marked "${reminder.title}" as complete.'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            setState(() {
-              _completedReminderIds.remove(reminder.id);
-              if (index >= 0) {
-                _reminders.insert(index, reminder);
-              } else {
-                _reminders.add(reminder);
-                _reminders.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-              }
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openReminderComposer({
-    Reminder? reminder,
-    bool isVoiceCreated = false,
-    String? initialTitle,
-    String? initialDescription,
-  }) async {
+  void _showSubscriptionSheet() {
     final rootContext = context;
-    final titleController = TextEditingController(text: initialTitle ?? reminder?.title ?? '');
-    final detailsController = TextEditingController(text: initialDescription ?? reminder?.description ?? '');
-    DateTime scheduledAt = reminder?.scheduledAt ?? DateTime.now().add(const Duration(hours: 1));
-    ReminderPriority priority = reminder?.priority ?? ReminderPriority.medium;
-    bool voiceCreated = reminder?.isVoiceCreated ?? isVoiceCreated;
-    bool geofenced = reminder?.isGeofenced ?? false;
-    String? locationName = reminder?.locationName;
-
-    final updatedReminder = await showModalBottomSheet<Reminder>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setModalState) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reminder == null ? 'Create reminder' : 'Edit reminder',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        hintText: 'What should we remind you about?',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: detailsController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Notes',
-                        hintText: 'Add extra details or context (optional)',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.event_outlined),
-                            label: Text(MaterialLocalizations.of(context).formatMediumDate(scheduledAt)),
-                            onPressed: () async {
-                              final pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: scheduledAt,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                              );
-                              if (pickedDate != null) {
-                                final pickedTime = await showTimePicker(
-                                  context: context,
-                                  initialTime: TimeOfDay.fromDateTime(scheduledAt),
-                                );
-                                setModalState(() {
-                                  scheduledAt = DateTime(
-                                    pickedDate.year,
-                                    pickedDate.month,
-                                    pickedDate.day,
-                                    pickedTime?.hour ?? scheduledAt.hour,
-                                    pickedTime?.minute ?? scheduledAt.minute,
-                                  );
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<ReminderPriority>(
-                            value: priority,
-                            decoration: const InputDecoration(labelText: 'Priority'),
-                            items: ReminderPriority.values
-                                .map(
-                                  (priority) => DropdownMenuItem(
-                                    value: priority,
-                                    child: Text(priority.label),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setModalState(() => priority = value);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: voiceCreated,
-                      onChanged: (value) => setModalState(() => voiceCreated = value),
-                      title: const Text('Captured via voice'),
-                      subtitle: const Text('Keep track of reminders created with voice input.'),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: _isPremiumUser && geofenced,
-                      onChanged: (value) async {
-                        if (!_isPremiumUser) {
-                          ScaffoldMessenger.of(rootContext).showSnackBar(
-                            const SnackBar(content: Text('Upgrade to Premium to enable geofenced reminders.')),
-                          );
-                          return;
-                        }
-                        if (value) {
-                          final selected = await _pickLocation();
-                          if (selected != null) {
-                            setModalState(() {
-                              geofenced = true;
-                              locationName = selected;
-                            });
-                          }
-                        } else {
-                          setModalState(() {
-                            geofenced = false;
-                            locationName = null;
-                          });
-                        }
-                      },
-                      title: const Text('Trigger on arrival'),
-                      subtitle: Text(
-                        !_isPremiumUser
-                            ? 'Premium feature'
-                            : locationName == null
-                                ? 'Select a location to trigger this reminder.'
-                                : 'Location: $locationName',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (titleController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(rootContext).showSnackBar(
-                              const SnackBar(content: Text('Please add a title to your reminder.')),
-                            );
-                            return;
-                          }
-                          final id = reminder?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
-                          Navigator.of(context).pop(
-                            Reminder(
-                              id: id,
-                              title: titleController.text.trim(),
-                              description: detailsController.text.trim(),
-                              scheduledAt: scheduledAt,
-                              priority: priority,
-                              isVoiceCreated: voiceCreated,
-                              isGeofenced: _isPremiumUser && geofenced && locationName != null,
-                              locationName: _isPremiumUser ? locationName : null,
-                            ),
-                          );
-                        },
-                        child: Text(reminder == null ? 'Create' : 'Save changes'),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-
-    // titleController.dispose();
-    // detailsController.dispose();
-
-    if (updatedReminder != null) {
-      _saveReminder(updatedReminder);
-    }
-  }
-
-  Future<String?> _pickLocation() async {
-    if (!mounted) return null;
-    const options = ['Home', 'Work', 'Gym', 'Supermarket', 'Pharmacy'];
-    return showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Select a location'),
-        children: [
-          for (final option in options)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop(option),
-              child: Text(option),
-            ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _openAlarmComposer({AlarmEntry? existing}) async {
-    final labelController = TextEditingController(text: existing?.label ?? '');
-    TimeOfDay selectedTime = existing?.time ?? TimeOfDay.now();
-    const recurrenceOptions = ['Daily', 'Weekdays', 'Weekends', 'Weekly', 'Custom'];
-    String recurrence = existing?.recurrence ?? 'Daily';
-    String customRecurrence = existing != null && !recurrenceOptions.contains(existing.recurrence)
-        ? existing.recurrence
-        : 'Every 3 days';
-    bool isCustom = recurrence == 'Custom' || (!recurrenceOptions.contains(recurrence));
-
-    final newAlarm = await showModalBottomSheet<AlarmEntry>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setModalState) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      existing == null ? 'Create alarm' : 'Edit alarm',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: labelController,
-                      decoration: const InputDecoration(
-                        labelText: 'Alarm label',
-                        hintText: 'e.g. Morning workout',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.access_time),
-                      label: Text(MaterialLocalizations.of(context).formatTimeOfDay(selectedTime)),
-                      onPressed: () async {
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: selectedTime,
-                        );
-                        if (picked != null) {
-                          setModalState(() => selectedTime = picked);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: recurrenceOptions.map((option) {
-                        final selected = isCustom ? option == 'Custom' : recurrence == option;
-                        return ChoiceChip(
-                          label: Text(option),
-                          selected: selected,
-                          onSelected: (value) {
-                            if (!value) return;
-                            setModalState(() {
-                              if (option == 'Custom') {
-                                isCustom = true;
-                                recurrence = 'Custom';
-                              } else {
-                                isCustom = false;
-                                recurrence = option;
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    if (isCustom) ...[
-                      const SizedBox(height: 16),
-                      TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Custom interval',
-                          hintText: 'e.g. Every 3 days',
-                        ),
-                        onChanged: (value) => customRecurrence = value,
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final label = labelController.text.trim().isEmpty
-                              ? 'Alarm'
-                              : labelController.text.trim();
-                          final recurrenceLabel =
-                              isCustom ? customRecurrence.trim() : recurrence;
-                          Navigator.of(context).pop(
-                            AlarmEntry(
-                              id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-                              time: selectedTime,
-                              recurrence: recurrenceLabel.isEmpty ? 'Custom interval' : recurrenceLabel,
-                              label: label,
-                            ),
-                          );
-                        },
-                        child: Text(existing == null ? 'Create alarm' : 'Save changes'),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-
-    labelController.dispose();
-
-    if (newAlarm != null) {
-      _saveAlarm(newAlarm);
-    }
-  }
-
-  void _saveAlarm(AlarmEntry alarm) {
-    setState(() {
-      final index = _alarms.indexWhere((element) => element.id == alarm.id);
-      if (index >= 0) {
-        _alarms[index] = alarm;
-      } else {
-        _alarms.add(alarm);
-      }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Alarm "${alarm.label}" saved.')),
-    );
-  }
-
-  void _deleteAlarm(AlarmEntry alarm) {
-    setState(() {
-      _alarms.removeWhere((element) => element.id == alarm.id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Alarm "${alarm.label}" removed.')),
-    );
-  }
-
-  Future<void> _openHydrationLogSheet() async {
-    final controller = TextEditingController();
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Log water intake',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  FilledButton.tonal(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _addHydrationEntry(200);
-                    },
-                    child: const Text('+200 ml'),
-                  ),
-                  FilledButton.tonal(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _addHydrationEntry(400);
-                    },
-                    child: const Text('+400 ml'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Custom amount (ml)',
-                  hintText: 'Enter amount in milliliters',
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final value = int.tryParse(controller.text.trim());
-                    if (value == null || value <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Enter a positive amount.')),
-                      );
-                      return;
-                    }
-                    Navigator.of(context).pop();
-                    _addHydrationEntry(value);
-                  },
-                  child: const Text('Log hydration'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      isScrollControlled: true,
-    );
-    controller.dispose();
-  }
-
-  void _addHydrationEntry(int amount) {
-    setState(() {
-      final log = HydrationLog(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        amount: amount,
-        timestamp: DateTime.now(),
-      );
-      _hydrationHistory.add(log);
-      _hydrationLogged += amount;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Logged $amount ml of water.')),
-    );
-  }
-
-  void _updateHydrationGoal(int newGoal) {
-    setState(() {
-      _hydrationGoal = newGoal;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Hydration goal set to $newGoal ml.')),
-    );
-  }
-
-  Future<void> _openHydrationGoalDialog() async {
-    final controller = TextEditingController(text: _hydrationGoal.toString());
-    final newGoal = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set hydration goal'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'Daily goal in ml'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = int.tryParse(controller.text.trim());
-              if (value == null || value < 1000) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter at least 1000 ml.')),
-                );
-                return;
-              }
-              Navigator.of(context).pop(value);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (newGoal != null) {
-      _updateHydrationGoal(newGoal);
-    }
-  }
-
-  Future<void> _handleVoiceCapture() async {
-    final recognized = await _simulateVoiceCapture();
-    if (recognized != null && recognized.isNotEmpty) {
-      _openReminderComposer(
-        isVoiceCreated: true,
-        initialTitle: recognized,
-      );
-    }
-  }
-
-  Future<String?> _simulateVoiceCapture() async {
-    if (!mounted) return null;
-    const suggestions = [
-      'Call Dr. Singh tomorrow at 9am',
-      'Buy birthday gift when near the mall',
-      'Start Pomodoro at 3pm for coding session',
-    ];
-    return showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Simulated voice input'),
-        children: [
-          for (final suggestion in suggestions)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop(suggestion),
-              child: Text(suggestion),
-            ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Try again'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<_PomodoroConfig?> _selectCustomIntervals() async {
-    final workController =
-        TextEditingController(text: (_customWorkDuration ?? const Duration(minutes: 25)).inMinutes.toString());
-    final restController =
-        TextEditingController(text: (_customRestDuration ?? const Duration(minutes: 5)).inMinutes.toString());
-    final config = await showDialog<_PomodoroConfig>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Custom Pomodoro'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: workController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Focus minutes'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: restController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Rest minutes'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final work = int.tryParse(workController.text.trim());
-              final rest = int.tryParse(restController.text.trim());
-              if (work == null || work <= 0 || rest == null || rest < 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Use positive numbers for custom intervals.')),
-                );
-                return;
-              }
-              Navigator.of(context).pop(
-                _PomodoroConfig(Duration(minutes: work), Duration(minutes: rest)),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    workController.dispose();
-    restController.dispose();
-    return config;
-  }
-
-  Future<void> _startSelectedPomodoro() async {
-    Duration work;
-    Duration rest;
-
-    switch (_selectedPomodoroPreset) {
-      case '15/5 min':
-        work = const Duration(minutes: 15);
-        rest = const Duration(minutes: 5);
-        break;
-      case '50/10 min':
-        work = const Duration(minutes: 50);
-        rest = const Duration(minutes: 10);
-        break;
-      case 'Custom':
-        if (_customWorkDuration == null || _customRestDuration == null) {
-          final config = await _selectCustomIntervals();
-          if (config == null) return;
-          setState(() {
-            _customWorkDuration = config.work;
-            _customRestDuration = config.rest;
-          });
-        }
-        work = _customWorkDuration ?? const Duration(minutes: 25);
-        rest = _customRestDuration ?? const Duration(minutes: 5);
-        break;
-      case '25/5 min':
-      default:
-        work = const Duration(minutes: 25);
-        rest = const Duration(minutes: 5);
-        break;
-    }
-
-    _startPomodoroSession(work, rest);
-  }
-
-  void _startPomodoroSession(Duration work, Duration rest) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PomodoroSessionScreen(
-          workDuration: work,
-          restDuration: rest,
-        ),
-      ),
-    );
-  }
-
-  void _handleSearch() {
-    final reminders = _activeReminders;
+    final subscriptionState = rootContext.read<SubscriptionCubit>().state;
     showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: reminders.isEmpty
-                ? const Text('No reminders to search through yet.')
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: reminders
-                        .map(
-                          (reminder) => ListTile(
-                            leading: const Icon(Icons.search),
-                            title: Text(reminder.title),
-                            subtitle: Text(reminder.description.isEmpty
-                                ? reminder.priority.label
-                                : reminder.description),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(this.context).showSnackBar(
-                                SnackBar(content: Text('Open reminder "${reminder.title}"')),
-                              );
-                            },
-                          ),
-                        )
-                        .toList(),
-                  ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _togglePremium(bool value) {
-    setState(() => _isPremiumUser = value);
-  }
-
-  void _handlePurchasePremium() {
-    setState(() => _isPremiumUser = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Premium activated. Enjoy geofenced reminders and no ads!')),
-    );
-  }
-
-  void _handleRestorePurchases() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Attempting to restore purchases...')),
-    );
-  }
-
-  void _handleSubscriptionTap() {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
+      context: rootContext,
+      builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -1716,43 +1111,63 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 Icons.workspace_premium_outlined,
                 size: 48,
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(rootContext).colorScheme.primary,
               ),
               const SizedBox(height: 16),
               Text(
-                _isPremiumUser ? 'Manage your Premium plan' : 'Upgrade to Premium',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                subscriptionState.isPremium
+                    ? 'Manage your Premium plan'
+                    : 'Upgrade to Premium',
+                style: Theme.of(
+                  rootContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                _isPremiumUser
+                subscriptionState.isPremium
                     ? 'Adjust your subscription, manage billing, or contact support.'
                     : 'Unlock geofenced reminders, advanced Pomodoro analytics, and an ad-free experience.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    ),
+                style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    rootContext,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    if (_isPremiumUser) {
-                      ScaffoldMessenger.of(this.context).showSnackBar(
-                        const SnackBar(content: Text('Subscription portal coming soon.')),
+                    final cubit = rootContext.read<SubscriptionCubit>();
+                    if (subscriptionState.isPremium) {
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Subscription portal coming soon.'),
+                        ),
                       );
                     } else {
-                      _handlePurchasePremium();
+                      cubit.upgrade();
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Premium activated. Enjoy the upgrade!',
+                          ),
+                        ),
+                      );
                     }
+                    Navigator.of(sheetContext).pop();
                   },
-                  child: Text(_isPremiumUser ? 'Manage subscription' : 'Upgrade now'),
+                  child: Text(
+                    subscriptionState.isPremium
+                        ? 'Manage subscription'
+                        : 'Upgrade now',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(sheetContext).pop(),
                 child: const Text('Close'),
               ),
             ],
@@ -1770,23 +1185,268 @@ class _PomodoroConfig {
   const _PomodoroConfig(this.work, this.rest);
 }
 
+class _HomeDrawer extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final bool isPremium;
+  final VoidCallback onSubscriptionTap;
+
+  const _HomeDrawer({
+    required this.currentIndex,
+    required this.onDestinationSelected,
+    required this.isPremium,
+    required this.onSubscriptionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primaryContainer,
+                  ],
+                ),
+              ),
+              accountName: Text(isPremium ? 'Premium member' : 'Guest'),
+              accountEmail: const Text('Stay on top of your day'),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(
+                  Icons.person_outline,
+                  size: 36,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            _DrawerTile(
+              icon: Icons.home_outlined,
+              label: 'Home',
+              selected: currentIndex == 0,
+              onTap: () => onDestinationSelected(0),
+            ),
+            _DrawerTile(
+              icon: Icons.calendar_month_outlined,
+              label: 'Calendar',
+              selected: currentIndex == 1,
+              onTap: () => onDestinationSelected(1),
+            ),
+            _DrawerTile(
+              icon: Icons.settings_outlined,
+              label: 'Settings',
+              selected: currentIndex == 2,
+              onTap: () => onDestinationSelected(2),
+            ),
+            _DrawerTile(
+              icon: Icons.person_outline,
+              label: 'Profile',
+              selected: currentIndex == 3,
+              onTap: () => onDestinationSelected(3),
+            ),
+            const Divider(),
+            _DrawerTile(
+              icon: Icons.workspace_premium_outlined,
+              label: isPremium ? 'Manage subscription' : 'Upgrade to Premium',
+              onTap: onSubscriptionTap,
+            ),
+            _DrawerTile(
+              icon: Icons.help_outline,
+              label: 'Help & support',
+              onTap: () {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Support center coming soon.')),
+                );
+              },
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Swipe reminders up to mark them complete. Use undo if you change your mind.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DrawerTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool selected;
 
   const _DrawerTile({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.selected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
+      leading: Icon(
+        icon,
+        color: selected ? Theme.of(context).colorScheme.primary : null,
+      ),
       title: Text(label),
+      selected: selected,
       onTap: onTap,
+    );
+  }
+}
+
+class _QuickEntryCard extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onTextSubmitted;
+  final VoidCallback onVoicePressed;
+  final VoidCallback onAlarmPressed;
+
+  const _QuickEntryCard({
+    required this.controller,
+    required this.onTextSubmitted,
+    required this.onVoicePressed,
+    required this.onAlarmPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Quick reminder',
+                hintText: 'e.g. Call the dentist tomorrow at 9am',
+                prefixIcon: const Icon(Icons.edit_outlined),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send_rounded),
+                  onPressed: onTextSubmitted,
+                ),
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => onTextSubmitted(),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.mic_none_outlined),
+                    label: const Text('Capture voice'),
+                    onPressed: onVoicePressed,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.alarm_add_outlined),
+                    label: const Text('Create alarm'),
+                    onPressed: onAlarmPressed,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderSection extends StatelessWidget {
+  final String title;
+  final Color accent;
+  final List<Reminder> reminders;
+  final ValueChanged<Reminder> onEdit;
+  final ValueChanged<Reminder> onDelete;
+  final ValueChanged<Reminder> onComplete;
+
+  const _ReminderSection({
+    required this.title,
+    required this.accent,
+    required this.reminders,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onComplete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${reminders.length} upcoming',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...reminders.map(
+                (reminder) => _ReminderTile(
+                  reminder: reminder,
+                  accent: accent,
+                  localizations: localizations,
+                  onEdit: () => onEdit(reminder),
+                  onDelete: () => onDelete(reminder),
+                  onCompleted: () => onComplete(reminder),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1811,7 +1471,9 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final timeLabel = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(reminder.scheduledAt));
+    final timeLabel = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(reminder.scheduledAt),
+    );
     final dueLabel = _formatDue(reminder.scheduledAt);
 
     return Padding(
@@ -1827,7 +1489,11 @@ class _ReminderTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 36),
+          child: const Icon(
+            Icons.check_circle_outline,
+            color: Colors.white,
+            size: 36,
+          ),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -1856,11 +1522,16 @@ class _ReminderTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             reminder.title,
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: accent.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
@@ -1898,9 +1569,13 @@ class _ReminderTile extends StatelessWidget {
                             avatar: Icon(Icons.mic_none_outlined, size: 16),
                             label: Text('Voice'),
                           ),
-                        if (reminder.isGeofenced && reminder.locationName != null)
+                        if (reminder.isGeofenced &&
+                            reminder.locationName != null)
                           Chip(
-                            avatar: const Icon(Icons.location_on_outlined, size: 16),
+                            avatar: const Icon(
+                              Icons.location_on_outlined,
+                              size: 16,
+                            ),
                             label: Text(reminder.locationName!),
                           ),
                         Chip(
@@ -1921,14 +1596,8 @@ class _ReminderTile extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Edit'),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete'),
-                  ),
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),
             ],
@@ -1957,5 +1626,482 @@ class _ReminderTile extends StatelessWidget {
       return 'in ${minutes}m';
     }
     return 'Soon';
+  }
+}
+
+class _AlarmCard extends StatelessWidget {
+  final AlarmState alarmState;
+  final Future<void> Function({AlarmEntry? existing}) onCreate;
+  final Future<void> Function({AlarmEntry? existing}) onEdit;
+  final ValueChanged<AlarmEntry> onDelete;
+
+  const _AlarmCard({
+    required this.alarmState,
+    required this.onCreate,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                child: Icon(
+                  Icons.alarm_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              title: const Text('Recurring alarms'),
+              subtitle: const Text('Stay consistent with your routines.'),
+              trailing: IconButton(
+                icon: const Icon(Icons.add_rounded),
+                onPressed: () {
+                  onCreate();
+                },
+              ),
+            ),
+            if (alarmState.alarms.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'No alarms yet. Create one to get repeating alerts.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...alarmState.alarms.map((alarm) {
+                final timeLabel = localizations.formatTimeOfDay(alarm.time);
+                return ListTile(
+                  leading: const Icon(Icons.schedule_outlined),
+                  title: Text(alarm.label),
+                  subtitle: Text('${alarm.recurrence} • $timeLabel'),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit(existing: alarm);
+                      } else if (value == 'delete') {
+                        onDelete(alarm);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HydrationGoalCard extends StatelessWidget {
+  final HydrationState hydrationState;
+  final ValueChanged<int> onQuickLog;
+  final VoidCallback onCustomLog;
+  final VoidCallback onSetGoal;
+
+  const _HydrationGoalCard({
+    required this.hydrationState,
+    required this.onQuickLog,
+    required this.onCustomLog,
+    required this.onSetGoal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final progress = hydrationState.dailyGoal == 0
+        ? 0.0
+        : (hydrationState.totalIntake / hydrationState.dailyGoal).clamp(
+            0.0,
+            1.0,
+          );
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                  child: Icon(
+                    Icons.local_drink_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Hydration goal',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                TextButton(onPressed: onSetGoal, child: const Text('Set goal')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${hydrationState.totalIntake} / ${hydrationState.dailyGoal} ml',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: () => onQuickLog(200),
+                  child: const Text('+200 ml'),
+                ),
+                FilledButton.tonal(
+                  onPressed: () => onQuickLog(400),
+                  child: const Text('+400 ml'),
+                ),
+                OutlinedButton(
+                  onPressed: onCustomLog,
+                  child: const Text('Custom amount'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HydrationHistoryCard extends StatelessWidget {
+  final HydrationState hydrationState;
+
+  const _HydrationHistoryCard({required this.hydrationState});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    final history = hydrationState.logs.toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Hydration history'),
+              subtitle: const Text('Track how consistent you are each day.'),
+              trailing: IconButton(
+                icon: const Icon(Icons.history),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Detailed hydration analytics coming soon.',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (history.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'No history yet. Log your water to see it here.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+              )
+            else
+              ...history.take(5).map((log) {
+                final timeLabel = localizations.formatTimeOfDay(
+                  TimeOfDay.fromDateTime(log.timestamp),
+                );
+                final dateLabel = localizations.formatMediumDate(log.timestamp);
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    child: Icon(
+                      Icons.water_drop_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  title: Text('${log.amount} ml added'),
+                  subtitle: Text('$dateLabel • $timeLabel'),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PomodoroCard extends StatelessWidget {
+  final PomodoroState pomodoroState;
+  final ValueChanged<String> onPresetSelected;
+  final Future<_PomodoroConfig?> Function() onCustomRequested;
+  final VoidCallback onStartSession;
+
+  const _PomodoroCard({
+    required this.pomodoroState,
+    required this.onPresetSelected,
+    required this.onCustomRequested,
+    required this.onStartSession,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                  child: Icon(
+                    Icons.hourglass_bottom_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Pomodoro focus',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: PomodoroState.presets.map((preset) {
+                String label = preset;
+                if (preset == 'Custom' &&
+                    pomodoroState.customWorkDuration != null &&
+                    pomodoroState.customRestDuration != null) {
+                  label =
+                      'Custom ${pomodoroState.customWorkDuration!.inMinutes}/${pomodoroState.customRestDuration!.inMinutes} min';
+                }
+                return ChoiceChip(
+                  label: Text(label),
+                  selected: pomodoroState.selectedPreset == preset,
+                  onSelected: (selected) async {
+                    if (!selected) return;
+                    onPresetSelected(preset);
+                    if (preset == 'Custom' &&
+                        pomodoroState.customWorkDuration == null &&
+                        pomodoroState.customRestDuration == null) {
+                      await onCustomRequested();
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onStartSession,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Start Pomodoro'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GeofenceCard extends StatelessWidget {
+  final ReminderState reminderState;
+  final bool isPremium;
+  final VoidCallback onCreateGeofence;
+  final VoidCallback onUpgrade;
+
+  const _GeofenceCard({
+    required this.reminderState,
+    required this.isPremium,
+    required this.onCreateGeofence,
+    required this.onUpgrade,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final geofencedReminders = reminderState.reminders
+        .where(
+          (reminder) => reminder.isGeofenced && reminder.locationName != null,
+        )
+        .toList();
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Location-based reminders',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isPremium
+                  ? 'Trigger reminders when you arrive at a selected place.'
+                  : 'Upgrade to Premium to unlock geofenced reminders.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.add_location_alt_outlined),
+                label: Text(
+                  isPremium
+                      ? 'Create geofenced reminder'
+                      : 'See premium benefits',
+                ),
+                onPressed: isPremium ? onCreateGeofence : onUpgrade,
+              ),
+            ),
+            if (geofencedReminders.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: geofencedReminders.map((reminder) {
+                  return Chip(
+                    avatar: const Icon(Icons.location_pin, size: 16),
+                    label: Text(reminder.locationName ?? 'Location'),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AdBanner extends StatelessWidget {
+  final VoidCallback onUpgrade;
+
+  const _AdBanner({required this.onUpgrade});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.secondaryContainer,
+            theme.colorScheme.secondary,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.campaign_outlined,
+            size: 32,
+            color: theme.colorScheme.onSecondary,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Ad — Upgrade to Premium to enjoy an ad-free experience.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: onUpgrade,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.onSecondary,
+              foregroundColor: theme.colorScheme.secondary,
+            ),
+            child: const Text('Upgrade'),
+          ),
+        ],
+      ),
+    );
   }
 }

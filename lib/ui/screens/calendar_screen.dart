@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
+import 'package:the_reminder_app/blocs/alarm/alarm_state.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
+import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 
 class CalendarScreen extends StatefulWidget {
-  final List<Reminder> reminders;
-  final List<AlarmEntry> alarms;
-
-  const CalendarScreen({
-    super.key,
-    required this.reminders,
-    required this.alarms,
-  });
+  const CalendarScreen({super.key});
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -23,12 +21,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    final reminders = widget.reminders
+    final reminderState = context.watch<ReminderBloc>().state;
+    final alarmState = context.watch<AlarmCubit>().state;
+    final reminders = reminderState.reminders
         .where((reminder) => reminder.scheduledAt.isAfter(DateTime.now().subtract(const Duration(days: 1))))
         .toList()
       ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
-    final alarms = widget.alarms;
+    final alarms = alarmState.alarms;
 
     final filteredReminders = _selectedDay == null
         ? reminders

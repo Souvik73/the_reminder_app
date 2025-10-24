@@ -19,6 +19,9 @@ import 'package:the_reminder_app/ui/screens/calendar_screen.dart';
 import 'package:the_reminder_app/ui/screens/pomodoro_session_screen.dart';
 import 'package:the_reminder_app/ui/screens/profile_screen.dart';
 import 'package:the_reminder_app/ui/screens/settings_screen.dart';
+import 'package:the_reminder_app/ui/theme/app_colors.dart';
+import 'package:the_reminder_app/ui/theme/app_gradients.dart';
+import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<HydrationCubit>().setActiveUser(userId);
   }
 
+  void _openDrawer() {
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
   String _userIdFromState(AuthState state) {
     if (state is AuthSuccess) {
       return state.userId;
@@ -80,8 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final subscriptionState = context.watch<SubscriptionCubit>().state;
     final pomodoroState = context.watch<PomodoroCubit>().state;
 
-    final titles = ['Home', 'Calendar', 'Settings', 'Profile'];
-
     return BlocListener<AuthBloc, AuthState>(
       listenWhen: (previous, current) =>
           _userIdFromState(previous) != _userIdFromState(current),
@@ -96,11 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
           isPremium: subscriptionState.isPremium,
           onSubscriptionTap: _showSubscriptionSheet,
         ),
-        appBar: AppBar(
-          title: Text(titles[_currentIndex]),
-          centerTitle: true,
-          actions: _buildAppBarActions(subscriptionState),
-        ),
         body: IndexedStack(
           index: _currentIndex,
           children: [
@@ -111,15 +111,18 @@ class _HomeScreenState extends State<HomeScreen> {
               subscriptionState,
               pomodoroState,
             ),
-            const CalendarScreen(),
-            const SettingsScreen(),
-            const ProfileScreen(),
+            CalendarScreen(onOpenMenu: _openDrawer),
+            SettingsScreen(onOpenMenu: _openDrawer),
+            ProfileScreen(onOpenMenu: _openDrawer),
           ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) =>
               setState(() => _currentIndex = index),
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xFF667EEA).withOpacity(0.18),
+          surfaceTintColor: Colors.transparent,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
@@ -144,55 +147,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            _showCreationSheet();
-          },
+          onPressed: _showCreationSheet,
           icon: const Icon(Icons.add_rounded),
           label: const Text('New'),
+          backgroundColor: const Color(0xFF667EEA),
+          foregroundColor: Colors.white,
         ),
       ),
     );
-  }
-
-  List<Widget> _buildAppBarActions(SubscriptionState subscriptionState) {
-    switch (_currentIndex) {
-      case 0:
-        return [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showReminderSearch,
-          ),
-          IconButton(
-            icon: const Icon(Icons.mic_none_outlined),
-            onPressed: () {
-              _handleVoiceCapture();
-            },
-          ),
-        ];
-      case 1:
-        return [
-          IconButton(
-            icon: const Icon(Icons.tune_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Calendar filters coming soon.')),
-              );
-            },
-          ),
-        ];
-      case 3:
-        return [
-          IconButton(
-            icon: const Icon(Icons.workspace_premium_outlined),
-            onPressed: _showSubscriptionSheet,
-            tooltip: subscriptionState.isPremium
-                ? 'Manage subscription'
-                : 'Upgrade to Premium',
-          ),
-        ];
-      default:
-        return const [];
-    }
   }
 
   Widget _buildHomeTab(
@@ -205,97 +167,125 @@ class _HomeScreenState extends State<HomeScreen> {
     final grouped = reminderState.remindersByPriority;
     final theme = Theme.of(context);
 
+    final actions = [
+      GradientHeaderButton(
+        icon: Icons.search_rounded,
+        onPressed: _showReminderSearch,
+      ),
+      const SizedBox(width: 12),
+      GradientHeaderButton(
+        icon: Icons.mic_none_rounded,
+        onPressed: _handleVoiceCapture,
+      ),
+    ];
+
+    Widget bodyContent;
     if (reminderState.isLoading && reminderState.activeReminders.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      bodyContent = const Center(child: CircularProgressIndicator());
+    } else {
+      bodyContent = RefreshIndicator(
+        onRefresh: () async =>
+            Future<void>.delayed(const Duration(milliseconds: 600)),
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
+          children: [
+            _QuickEntryCard(
+              controller: _quickReminderController,
+              onTextSubmitted: _createReminderFromText,
+              onVoicePressed: _handleVoiceCapture,
+              onAlarmPressed: () => _openAlarmComposer(),
+            ),
+            const SizedBox(height: 24),
+            if (reminderState.activeReminders.isEmpty)
+              _buildEmptyRemindersState(theme)
+            else ...[
+              if (grouped[ReminderPriority.high]!.isNotEmpty)
+                _ReminderSection(
+                  title: 'High priority',
+                  accent: ReminderPriority.high.color,
+                  reminders: grouped[ReminderPriority.high]!,
+                  onEdit: (reminder) =>
+                      _openReminderComposer(reminder: reminder),
+                  onDelete: _deleteReminder,
+                  onComplete: _completeReminder,
+                ),
+              if (grouped[ReminderPriority.medium]!.isNotEmpty)
+                _ReminderSection(
+                  title: 'Medium priority',
+                  accent: ReminderPriority.medium.color,
+                  reminders: grouped[ReminderPriority.medium]!,
+                  onEdit: (reminder) =>
+                      _openReminderComposer(reminder: reminder),
+                  onDelete: _deleteReminder,
+                  onComplete: _completeReminder,
+                ),
+              if (grouped[ReminderPriority.low]!.isNotEmpty)
+                _ReminderSection(
+                  title: 'Low priority',
+                  accent: ReminderPriority.low.color,
+                  reminders: grouped[ReminderPriority.low]!,
+                  onEdit: (reminder) =>
+                      _openReminderComposer(reminder: reminder),
+                  onDelete: _deleteReminder,
+                  onComplete: _completeReminder,
+                ),
+            ],
+            const SizedBox(height: 24),
+            _AlarmCard(
+              alarmState: alarmState,
+              onCreate: _openAlarmComposer,
+              onEdit: _openAlarmComposer,
+              onDelete: _deleteAlarm,
+            ),
+            const SizedBox(height: 24),
+            _HydrationGoalCard(
+              hydrationState: hydrationState,
+              onQuickLog: _logHydration,
+              onCustomLog: _openHydrationLogSheet,
+              onSetGoal: _openHydrationGoalDialog,
+            ),
+            const SizedBox(height: 16),
+            _HydrationHistoryCard(hydrationState: hydrationState),
+            const SizedBox(height: 16),
+            _PomodoroCard(
+              pomodoroState: pomodoroState,
+              onPresetSelected: _selectPomodoroPreset,
+              onCustomRequested: _selectCustomIntervals,
+              onStartSession: _startPomodoroSession,
+            ),
+            const SizedBox(height: 16),
+            _GeofenceCard(
+              reminderState: reminderState,
+              isPremium: subscriptionState.isPremium,
+              onCreateGeofence: () {
+                _openReminderComposer(
+                  initialTitle: 'Reminder when I arrive at...',
+                );
+              },
+              onUpgrade: _showSubscriptionSheet,
+            ),
+            if (!subscriptionState.isPremium) ...[
+              const SizedBox(height: 16),
+              _AdBanner(onUpgrade: _showSubscriptionSheet),
+            ],
+          ],
+        ),
+      );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async =>
-          Future<void>.delayed(const Duration(milliseconds: 600)),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-        children: [
-          _QuickEntryCard(
-            controller: _quickReminderController,
-            onTextSubmitted: _createReminderFromText,
-            onVoicePressed: () {
-              _handleVoiceCapture();
-            },
-            onAlarmPressed: () {
-              _openAlarmComposer();
-            },
-          ),
-          const SizedBox(height: 24),
-          if (reminderState.activeReminders.isEmpty)
-            _buildEmptyRemindersState(theme)
-          else ...[
-            if (grouped[ReminderPriority.high]!.isNotEmpty)
-              _ReminderSection(
-                title: 'High priority',
-                accent: ReminderPriority.high.color,
-                reminders: grouped[ReminderPriority.high]!,
-                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
-                onDelete: _deleteReminder,
-                onComplete: _completeReminder,
-              ),
-            if (grouped[ReminderPriority.medium]!.isNotEmpty)
-              _ReminderSection(
-                title: 'Medium priority',
-                accent: ReminderPriority.medium.color,
-                reminders: grouped[ReminderPriority.medium]!,
-                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
-                onDelete: _deleteReminder,
-                onComplete: _completeReminder,
-              ),
-            if (grouped[ReminderPriority.low]!.isNotEmpty)
-              _ReminderSection(
-                title: 'Low priority',
-                accent: ReminderPriority.low.color,
-                reminders: grouped[ReminderPriority.low]!,
-                onEdit: (reminder) => _openReminderComposer(reminder: reminder),
-                onDelete: _deleteReminder,
-                onComplete: _completeReminder,
-              ),
-          ],
-          const SizedBox(height: 24),
-          _AlarmCard(
-            alarmState: alarmState,
-            onCreate: _openAlarmComposer,
-            onEdit: _openAlarmComposer,
-            onDelete: _deleteAlarm,
-          ),
-          const SizedBox(height: 24),
-          _HydrationGoalCard(
-            hydrationState: hydrationState,
-            onQuickLog: _logHydration,
-            onCustomLog: _openHydrationLogSheet,
-            onSetGoal: _openHydrationGoalDialog,
-          ),
-          const SizedBox(height: 16),
-          _HydrationHistoryCard(hydrationState: hydrationState),
-          const SizedBox(height: 16),
-          _PomodoroCard(
-            pomodoroState: pomodoroState,
-            onPresetSelected: _selectPomodoroPreset,
-            onCustomRequested: _selectCustomIntervals,
-            onStartSession: _startPomodoroSession,
-          ),
-          const SizedBox(height: 16),
-          _GeofenceCard(
-            reminderState: reminderState,
-            isPremium: subscriptionState.isPremium,
-            onCreateGeofence: () {
-              _openReminderComposer(
-                initialTitle: 'Reminder when I arrive at...',
-              );
-            },
-            onUpgrade: _showSubscriptionSheet,
-          ),
-          if (!subscriptionState.isPremium) ...[
-            const SizedBox(height: 16),
-            _AdBanner(onUpgrade: _showSubscriptionSheet),
-          ],
-        ],
+    return GradientPageShell(
+      icon: Icons.dashboard_customize_rounded,
+      title: "Today's Plan",
+      subtitle: 'Capture, prioritize, and stay on track',
+      leading: GradientHeaderButton(
+        icon: Icons.menu_rounded,
+        onPressed: _openDrawer,
+      ),
+      actions: actions,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: AppColors.pageBackground),
+        child: bodyContent,
       ),
     );
   }
@@ -304,22 +294,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
-        borderRadius: BorderRadius.circular(18),
+        gradient: AppGradients.subtle,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Icon(
             Icons.notifications_none_rounded,
             size: 36,
-            color: theme.colorScheme.primary,
+            color: AppColors.primary,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               'No upcoming reminders. Create one with text or voice to stay organized.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: AppColors.accent.withOpacity(0.6),
               ),
             ),
           ),
@@ -370,6 +367,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final updated = await showModalBottomSheet<Reminder>(
       context: context,
       isScrollControlled: true,
+      isDismissible: true,
+      // enableDrag: false,
       builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
@@ -576,8 +575,11 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    titleController.dispose();
-    notesController.dispose();
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      titleController.dispose();
+      notesController.dispose();
+    });
 
     if (updated != null) {
       context.read<ReminderBloc>().add(ReminderUpserted(reminder: updated));
@@ -779,7 +781,10 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    labelController.dispose();
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      labelController.dispose();
+    });
 
     if (result != null) {
       context.read<AlarmCubit>().upsertAlarm(result);
@@ -880,7 +885,10 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-    controller.dispose();
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      controller.dispose();
+    });
   }
 
   Future<void> _openHydrationGoalDialog() async {
@@ -918,7 +926,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-    controller.dispose();
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     if (newGoal != null) {
       context.read<HydrationCubit>().setDailyGoal(newGoal);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1020,8 +1031,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-    workController.dispose();
-    restController.dispose();
+    final binding = WidgetsBinding.instance;
+    binding.addPostFrameCallback((_) {
+      workController.dispose();
+      restController.dispose();
+    });
 
     if (config != null) {
       context.read<PomodoroCubit>().setCustomDurations(
@@ -1098,6 +1112,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showCreationSheet() async {
     await showModalBottomSheet<void>(
       context: context,
+      isDismissible: true,
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -1378,49 +1393,82 @@ class _QuickEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: 'Quick reminder',
-                hintText: 'e.g. Call the dentist tomorrow at 9am',
-                prefixIcon: const Icon(Icons.edit_outlined),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send_rounded),
-                  onPressed: onTextSubmitted,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppGradients.subtle,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        children: [
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Quick reminder',
+              hintText: 'e.g. Call the dentist tomorrow at 9am',
+              prefixIcon: const Icon(Icons.edit_outlined),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.send_rounded),
+                color: AppColors.primary,
+                onPressed: onTextSubmitted,
+              ),
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onTextSubmitted(),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.mic_none_outlined),
+                  label: const Text('Capture voice'),
+                  onPressed: onVoicePressed,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary, width: 1),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => onTextSubmitted(),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.mic_none_outlined),
-                    label: const Text('Capture voice'),
-                    onPressed: onVoicePressed,
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.alarm_add_outlined),
+                  label: const Text('Create alarm'),
+                  onPressed: onAlarmPressed,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    side: const BorderSide(
+                      color: AppColors.secondary,
+                      width: 1,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.alarm_add_outlined),
-                    label: const Text('Create alarm'),
-                    onPressed: onAlarmPressed,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1451,7 +1499,10 @@ class _ReminderSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        color: AppColors.cardBackground,
+        shadowColor: accent.withOpacity(0.2),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
           child: Column(
@@ -1464,7 +1515,7 @@ class _ReminderSection extends StatelessWidget {
                     height: 24,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
-                      color: accent,
+                      gradient: AppGradients.accent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1700,7 +1751,10 @@ class _AlarmCard extends StatelessWidget {
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1708,11 +1762,8 @@ class _AlarmCard extends StatelessWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                child: Icon(
-                  Icons.alarm_outlined,
-                  color: theme.colorScheme.primary,
-                ),
+                backgroundColor: AppColors.primary.withOpacity(0.12),
+                child: Icon(Icons.alarm_outlined, color: AppColors.primary),
               ),
               title: const Text('Recurring alarms'),
               subtitle: const Text('Stay consistent with your routines.'),
@@ -1793,7 +1844,10 @@ class _HydrationGoalCard extends StatelessWidget {
             1.0,
           );
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1802,10 +1856,10 @@ class _HydrationGoalCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                  backgroundColor: AppColors.primary.withOpacity(0.12),
                   child: Icon(
                     Icons.local_drink_outlined,
-                    color: theme.colorScheme.primary,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1831,6 +1885,8 @@ class _HydrationGoalCard extends StatelessWidget {
             LinearProgressIndicator(
               value: progress,
               minHeight: 8,
+              backgroundColor: AppColors.chipBackground,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(6),
             ),
             const SizedBox(height: 16),
@@ -1840,14 +1896,38 @@ class _HydrationGoalCard extends StatelessWidget {
               children: [
                 FilledButton.tonal(
                   onPressed: () => onQuickLog(200),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
                   child: const Text('+200 ml'),
                 ),
                 FilledButton.tonal(
                   onPressed: () => onQuickLog(400),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.secondary.withOpacity(0.1),
+                    foregroundColor: AppColors.secondary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
                   child: const Text('+400 ml'),
                 ),
                 OutlinedButton(
                   onPressed: onCustomLog,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.accent,
+                    side: const BorderSide(color: AppColors.accent),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
                   child: const Text('Custom amount'),
                 ),
               ],
@@ -1872,7 +1952,10 @@ class _HydrationHistoryCard extends StatelessWidget {
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1946,7 +2029,10 @@ class _PomodoroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1955,10 +2041,10 @@ class _PomodoroCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                  child: Icon(
+                  backgroundColor: AppColors.secondary.withOpacity(0.12),
+                  child: const Icon(
                     Icons.hourglass_bottom_outlined,
-                    color: theme.colorScheme.primary,
+                    color: AppColors.secondary,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1984,11 +2070,18 @@ class _PomodoroCard extends StatelessWidget {
                   label =
                       'Custom ${pomodoroState.customWorkDuration!.inMinutes}/${pomodoroState.customRestDuration!.inMinutes} min';
                 }
+                final isSelected = pomodoroState.selectedPreset == preset;
                 return ChoiceChip(
                   label: Text(label),
-                  selected: pomodoroState.selectedPreset == preset,
-                  onSelected: (selected) async {
-                    if (!selected) return;
+                  selected: isSelected,
+                  selectedColor: AppColors.secondary,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: AppColors.chipBackground,
+                  onSelected: (value) async {
+                    if (!value) return;
                     onPresetSelected(preset);
                     if (preset == 'Custom' &&
                         pomodoroState.customWorkDuration == null &&
@@ -2006,6 +2099,14 @@ class _PomodoroCard extends StatelessWidget {
                 onPressed: onStartSession,
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('Start Pomodoro'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
               ),
             ),
           ],
@@ -2038,7 +2139,10 @@ class _GeofenceCard extends StatelessWidget {
         .toList();
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -2047,10 +2151,10 @@ class _GeofenceCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                  child: Icon(
+                  backgroundColor: AppColors.accent.withOpacity(0.12),
+                  child: const Icon(
                     Icons.location_on_outlined,
-                    color: theme.colorScheme.primary,
+                    color: AppColors.accent,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -2062,13 +2166,18 @@ class _GeofenceCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (!isPremium)
+                  FilledButton.tonal(
+                    onPressed: onUpgrade,
+                    child: const Text('Upgrade'),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               isPremium
                   ? 'Trigger reminders when you arrive at a selected place.'
-                  : 'Upgrade to Premium to unlock geofenced reminders.',
+                  : 'Unlock geofenced reminders and smart arrival alerts.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
@@ -2076,14 +2185,22 @@ class _GeofenceCard extends StatelessWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: ElevatedButton.icon(
+                onPressed: isPremium ? onCreateGeofence : onUpgrade,
                 icon: const Icon(Icons.add_location_alt_outlined),
                 label: Text(
                   isPremium
                       ? 'Create geofenced reminder'
                       : 'See premium benefits',
                 ),
-                onPressed: isPremium ? onCreateGeofence : onUpgrade,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
               ),
             ),
             if (geofencedReminders.isNotEmpty) ...[
@@ -2095,6 +2212,13 @@ class _GeofenceCard extends StatelessWidget {
                   return Chip(
                     avatar: const Icon(Icons.location_pin, size: 16),
                     label: Text(reminder.locationName ?? 'Location'),
+                    backgroundColor: AppColors.chipBackground,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: AppColors.accent.withOpacity(0.2),
+                      ),
+                    ),
                   );
                 }).toList(),
               ),
@@ -2117,29 +2241,25 @@ class _AdBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.secondaryContainer,
-            theme.colorScheme.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        gradient: AppGradients.accent,
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.campaign_outlined,
-            size: 32,
-            color: theme.colorScheme.onSecondary,
-          ),
+          Icon(Icons.campaign_outlined, size: 32, color: Colors.white),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               'Ad — Upgrade to Premium to enjoy an ad-free experience.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSecondary,
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -2148,8 +2268,12 @@ class _AdBanner extends StatelessWidget {
           ElevatedButton(
             onPressed: onUpgrade,
             style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.onSecondary,
-              foregroundColor: theme.colorScheme.secondary,
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: const Text('Upgrade'),
           ),

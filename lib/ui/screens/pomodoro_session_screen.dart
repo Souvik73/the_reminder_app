@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:the_reminder_app/ui/theme/app_colors.dart';
+import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class PomodoroSessionScreen extends StatefulWidget {
   final Duration workDuration;
@@ -77,48 +79,93 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
+    return GradientPageShell(
+      icon: _isWorkPhase ? Icons.timer_rounded : Icons.self_improvement,
+      title: _isWorkPhase ? 'Focus Session' : 'Rest Interval',
+      subtitle: _isWorkPhase
+          ? 'Stay focused and keep the momentum going'
+          : 'Take a breath before the next focus block',
+      actions: [
+        IconButton(
+          onPressed: _closeSession,
+          icon: const Icon(Icons.close_rounded),
+          color: Colors.white,
+        ),
+      ],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 26,
+                offset: Offset(0, 16),
+              ),
+            ],
+          ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _isWorkPhase ? 'Focus time' : 'Rest',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white70,
+                _isWorkPhase ? 'Focus time' : 'Rest break',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _formatDuration(_remaining),
+                style: theme.textTheme.displayMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: const Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                _formatDuration(_remaining),
-                style: theme.textTheme.displayLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    iconSize: 48,
-                    color: Colors.white,
+                  ElevatedButton.icon(
                     onPressed: _togglePause,
                     icon: Icon(
                       _isPaused
                           ? Icons.play_arrow_rounded
                           : Icons.pause_rounded,
                     ),
+                    label: Text(_isPaused ? 'Resume' : 'Pause'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 32),
-                  IconButton(
-                    iconSize: 48,
-                    color: Colors.white70,
+                  const SizedBox(width: 16),
+                  OutlinedButton.icon(
                     onPressed: _closeSession,
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.stop_rounded),
+                    label: const Text('End'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
+                      side: const BorderSide(color: AppColors.secondary),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
                 ],
               ),

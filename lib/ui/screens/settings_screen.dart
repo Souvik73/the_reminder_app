@@ -4,9 +4,13 @@ import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
+import 'package:the_reminder_app/ui/theme/app_colors.dart';
+import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.onOpenMenu});
+
+  final VoidCallback? onOpenMenu;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -35,235 +39,297 @@ class _SettingsScreenState extends State<SettingsScreen> {
       listener: (context, state) {
         setState(() => _goal = state.dailyGoal.toDouble());
       },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-        children: [
-          Text(
-            'General',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SwitchListTile(
-            value: _notificationsEnabled,
-            onChanged: (value) => setState(() => _notificationsEnabled = value),
-            title: const Text('Enable smart notifications'),
-            subtitle: const Text('Get alerted based on urgency and location.'),
-          ),
-          SwitchListTile(
-            value: _voiceShortcutsEnabled,
-            onChanged: (value) =>
-                setState(() => _voiceShortcutsEnabled = value),
-            title: const Text('Voice shortcuts'),
-            subtitle: const Text('Allow voice commands for quick reminders.'),
-          ),
-          SwitchListTile(
-            value: _adsPersonalized,
-            onChanged: (value) => setState(() => _adsPersonalized = value),
-            title: const Text('Personalized ads'),
-            subtitle: const Text('Tailor ads based on your preferences.'),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Hydration goal',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Daily target: ${_goal.round()} ml',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Slider(
-                    value: _goal,
-                    min: 1500,
-                    max: 4000,
-                    divisions: 50,
-                    label: '${_goal.round()} ml',
-                    onChanged: (value) => setState(() => _goal = value),
-                    onChangeEnd: (value) {
-                      context.read<HydrationCubit>().setDailyGoal(
-                        value.round(),
-                      );
-                    },
-                  ),
-                  Text(
-                    'Adjust to match your lifestyle and activity level.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ],
+      child: GradientPageShell(
+        icon: Icons.tune_outlined,
+        title: 'Settings',
+        subtitle: 'Customize notifications and hydration goals',
+        leading: widget.onOpenMenu != null
+            ? GradientHeaderButton(
+                icon: Icons.menu_rounded,
+                onPressed: widget.onOpenMenu!,
+              )
+            : null,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: AppColors.pageBackground),
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
+            children: [
+              Text(
+                'General',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Premium',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              const SizedBox(height: 12),
+              _styledSwitch(
+                title: 'Enable smart notifications',
+                subtitle: 'Get alerted based on urgency and location.',
+                value: _notificationsEnabled,
+                onChanged: (value) =>
+                    setState(() => _notificationsEnabled = value),
+              ),
+              _styledSwitch(
+                title: 'Voice shortcuts',
+                subtitle: 'Allow voice commands for quick reminders.',
+                value: _voiceShortcutsEnabled,
+                onChanged: (value) =>
+                    setState(() => _voiceShortcutsEnabled = value),
+              ),
+              _styledSwitch(
+                title: 'Personalized ads',
+                subtitle: 'Tailor ads based on your preferences.',
+                value: _adsPersonalized,
+                onChanged: (value) => setState(() => _adsPersonalized = value),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Hydration goal',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                color: AppColors.cardBackground,
+                shadowColor: AppColors.cardShadow,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: subscriptionState.isPremium
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.primary.withOpacity(0.12),
-                        child: Icon(
-                          subscriptionState.isPremium
-                              ? Icons.verified
-                              : Icons.workspace_premium_outlined,
-                          color: subscriptionState.isPremium
-                              ? Colors.white
-                              : theme.colorScheme.primary,
+                      Text(
+                        'Daily target: ${_goal.round()} ml',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              subscriptionState.isPremium
-                                  ? 'Premium unlocked'
-                                  : 'Upgrade to Premium',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subscriptionState.isPremium
-                                  ? 'Enjoy geofenced reminders and an ad-free experience.'
-                                  : 'Unlock geofenced reminders, priority support, and an ad-free experience.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(
-                                  0.7,
-                                ),
-                              ),
-                            ),
-                          ],
+                      Slider(
+                        value: _goal,
+                        min: 1500,
+                        max: 4000,
+                        divisions: 50,
+                        label: '${_goal.round()} ml',
+                        onChanged: (value) => setState(() => _goal = value),
+                        onChangeEnd: (value) {
+                          context.read<HydrationCubit>().setDailyGoal(
+                            value.round(),
+                          );
+                        },
+                      ),
+                      Text(
+                        'Adjust to match your lifestyle and activity level.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: subscriptionState.isPremium
-                              ? null
-                              : () {
-                                  context.read<SubscriptionCubit>().upgrade();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Premium activated. Enjoy the upgrade!',
-                                      ),
-                                    ),
-                                  );
-                                },
-                          child: const Text('Purchase Premium'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: subscriptionState.isPremium
-                              ? () {
-                                  context.read<SubscriptionCubit>().downgrade();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Premium disabled.'),
-                                    ),
-                                  );
-                                }
-                              : () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Attempting to restore purchases...',
-                                      ),
-                                    ),
-                                  );
-                                },
-                          child: Text(
-                            subscriptionState.isPremium
-                                ? 'Downgrade'
-                                : 'Restore purchases',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              Text(
+                'Premium',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _premiumCard(subscriptionState),
+              const SizedBox(height: 24),
+              Text(
+                'Support',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                color: AppColors.cardBackground,
+                shadowColor: AppColors.cardShadow,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.headset_mic_outlined),
+                      title: const Text('Help & FAQs'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.lock_outline),
+                      title: const Text('Privacy policy'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.article_outlined),
+                      title: const Text('Terms of service'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Support',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
+        ),
+      ),
+    );
+  }
+
+  Widget _styledSwitch({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SwitchListTile(
+        value: value,
+        onChanged: onChanged,
+        title: Text(title),
+        subtitle: Text(subtitle),
+        activeColor: AppColors.primary,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+      ),
+    );
+  }
+
+  Widget _premiumCard(SubscriptionState subscriptionState) {
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.headset_mic_outlined),
-                  title: const Text('Help & FAQs'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: subscriptionState.isPremium
+                      ? AppColors.primary
+                      : AppColors.primary.withOpacity(0.12),
+                  child: Icon(
+                    subscriptionState.isPremium
+                        ? Icons.verified
+                        : Icons.workspace_premium_outlined,
+                    color: subscriptionState.isPremium
+                        ? Colors.white
+                        : AppColors.primary,
+                  ),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.lock_outline),
-                  title: const Text('Privacy policy'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.article_outlined),
-                  title: const Text('Terms of service'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subscriptionState.isPremium
+                            ? 'Premium unlocked'
+                            : 'Upgrade to Premium',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subscriptionState.isPremium
+                            ? 'Enjoy geofenced reminders and an ad-free experience.'
+                            : 'Unlock geofenced reminders, priority support, and an ad-free experience.',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: subscriptionState.isPremium
+                        ? null
+                        : () {
+                            context.read<SubscriptionCubit>().upgrade();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Premium activated. Enjoy the upgrade!',
+                                ),
+                              ),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Purchase Premium'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: subscriptionState.isPremium
+                        ? () {
+                            context.read<SubscriptionCubit>().downgrade();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Premium disabled.'),
+                              ),
+                            );
+                          }
+                        : () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Attempting to restore purchases...',
+                                ),
+                              ),
+                            );
+                          },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      subscriptionState.isPremium
+                          ? 'Downgrade'
+                          : 'Restore purchases',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

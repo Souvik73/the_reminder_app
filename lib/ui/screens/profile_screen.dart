@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
-import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
-import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
+import 'package:the_reminder_app/ui/theme/app_colors.dart';
+import 'package:the_reminder_app/ui/theme/app_gradients.dart';
+import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.onOpenMenu});
+
+  final VoidCallback? onOpenMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +23,6 @@ class ProfileScreen extends StatelessWidget {
     final hydrationGoal = hydrationState.dailyGoal;
     final hydrationLogged = hydrationState.totalIntake;
     final hydrationHistory = hydrationState.logs;
-    final isPremium = subscriptionState.isPremium;
 
     final theme = Theme.of(context);
     final progress = hydrationGoal == 0
@@ -31,355 +33,531 @@ class ProfileScreen extends StatelessWidget {
     final recentHydration = hydrationHistory.toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-      children: [
-        Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+    final isPremium = subscriptionState.isPremium;
+
+    return GradientPageShell(
+      icon: Icons.person_outline,
+      title: 'Profile',
+      subtitle: isPremium
+          ? 'Premium subscriber insights'
+          : 'Track your productivity and hydration',
+      leading: onOpenMenu != null
+          ? GradientHeaderButton(
+              icon: Icons.menu_rounded,
+              onPressed: onOpenMenu!,
+            )
+          : null,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: AppColors.pageBackground),
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
+          children: [
+            _ProfileHeaderCard(
+              isPremium: isPremium,
+              subscriptionState: subscriptionState,
+              reminders: reminders.length,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Productivity overview',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 36,
-                    color: theme.colorScheme.primary,
+                Expanded(
+                  child: _MetricCard(
+                    icon: Icons.notifications_active_outlined,
+                    value: '${reminders.length}',
+                    label: 'Upcoming reminders',
+                    iconColor: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hey there!',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isPremium ? 'Premium subscriber' : 'Free plan user',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                      ),
-                      if (isPremium) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            color: theme.colorScheme.primary.withOpacity(0.12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.workspace_premium,
-                                size: 18,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Premium active',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: _HydrationMetricCard(
+                    progress: progress,
+                    hydrationGoal: hydrationGoal,
+                    hydrationLogged: hydrationLogged,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.manage_accounts_outlined),
-                  onPressed: () =>
-                      _showSubscriptionSheet(context, subscriptionState),
                 ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Productivity overview',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.notifications_active_outlined),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${reminders.length}',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Upcoming reminders',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            const SizedBox(height: 24),
+            Text(
+              'Recent hydration',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.local_drink_outlined),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${hydrationLogged} / $hydrationGoal ml',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: theme.colorScheme.primary.withOpacity(
-                          0.12,
-                        ),
-                        minHeight: 6,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Hydration progress',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            const SizedBox(height: 12),
+            if (recentHydration.isEmpty)
+              const _EmptyHydrationState()
+            else
+              _HydrationHistoryList(
+                logs: recentHydration,
+                localizations: localizations,
+              ),
+            const SizedBox(height: 24),
+            _QuickActionsCard(isPremium: isPremium),
+            const SizedBox(height: 24),
+            Card(
+              color: AppColors.cardBackground,
+              shadowColor: AppColors.cardShadow,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.logout_rounded),
+                title: const Text('Sign out'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {},
               ),
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Text(
-          'Recent hydration',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (recentHydration.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
-              borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  const _ProfileHeaderCard({
+    required this.isPremium,
+    required this.subscriptionState,
+    required this.reminders,
+  });
+
+  final bool isPremium;
+  final SubscriptionState subscriptionState;
+  final int reminders;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 34,
+              backgroundColor: AppColors.primary.withOpacity(0.12),
+              child: const Icon(
+                Icons.person_outline,
+                size: 36,
+                color: AppColors.primary,
+              ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.water_drop_outlined,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'No hydration entries yet. Log your water intake to see history here.',
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hey there!',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isPremium ? 'Premium subscriber' : 'Free plan user',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
-                ),
-              ],
-            ),
-          )
-        else
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: recentHydration.length > 5
-                  ? 5
-                  : recentHydration.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final log = recentHydration[index];
-                final timeLabel = localizations.formatTimeOfDay(
-                  TimeOfDay.fromDateTime(log.timestamp),
-                );
-                final dateLabel = localizations.formatMediumDate(log.timestamp);
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(
-                      0.12,
-                    ),
-                    child: Icon(
-                      Icons.local_drink,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  title: Text('${log.amount} ml logged'),
-                  subtitle: Text('$dateLabel • $timeLabel'),
-                );
-              },
-            ),
-          ),
-        const SizedBox(height: 24),
-        Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Subscription',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isPremium
-                      ? 'Thanks for supporting us! Manage or adjust your plan any time.'
-                      : 'Upgrade to Premium for geofenced reminders, Pomodoro insights, and an ad-free experience.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () =>
-                        _showSubscriptionSheet(context, subscriptionState),
-                    child: Text(
-                      isPremium ? 'Manage subscription' : 'Upgrade to Premium',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showSubscriptionSheet(
-    BuildContext rootContext,
-    SubscriptionState state,
-  ) {
-    showModalBottomSheet<void>(
-      context: rootContext,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.workspace_premium_outlined,
-                size: 48,
-                color: Theme.of(rootContext).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                state.isPremium
-                    ? 'Manage your Premium plan'
-                    : 'Upgrade to Premium',
-                style: Theme.of(
-                  rootContext,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                state.isPremium
-                    ? 'Adjust your subscription, manage billing, or contact support.'
-                    : 'Unlock geofenced reminders, advanced Pomodoro analytics, and an ad-free experience.',
-                textAlign: TextAlign.center,
-                style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    rootContext,
-                  ).colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final cubit = rootContext.read<SubscriptionCubit>();
-                    if (state.isPremium) {
-                      cubit.downgrade();
-                      ScaffoldMessenger.of(rootContext).showSnackBar(
-                        const SnackBar(content: Text('Premium disabled.')),
-                      );
-                    } else {
-                      cubit.upgrade();
-                      ScaffoldMessenger.of(rootContext).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Premium activated. Enjoy the upgrade!',
-                          ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _InfoPill(
+                        icon: Icons.notifications_active_outlined,
+                        label: '$reminders reminders',
+                        color: AppColors.primary,
+                      ),
+                      if (isPremium) ...[
+                        const SizedBox(width: 8),
+                        _InfoPill(
+                          icon: Icons.workspace_premium,
+                          label: 'Premium active',
+                          color: AppColors.secondary,
                         ),
-                      );
-                    }
-                    Navigator.of(sheetContext).pop();
-                  },
-                  child: Text(
-                    state.isPremium ? 'Downgrade to free' : 'Upgrade now',
+                      ],
+                    ],
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Navigator.of(sheetContext).pop(),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.manage_accounts_outlined),
+              onPressed: () =>
+                  _showSubscriptionSheet(context, subscriptionState),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.iconColor,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: iconColor),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HydrationMetricCard extends StatelessWidget {
+  const _HydrationMetricCard({
+    required this.progress,
+    required this.hydrationGoal,
+    required this.hydrationLogged,
+  });
+
+  final double progress;
+  final int hydrationGoal;
+  final int hydrationLogged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.local_drink_outlined, color: AppColors.secondary),
+            const SizedBox(height: 12),
+            Text(
+              '$hydrationLogged / $hydrationGoal ml',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: AppColors.chipBackground,
+              color: AppColors.secondary,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Hydration progress',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyHydrationState extends StatelessWidget {
+  const _EmptyHydrationState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: AppGradients.subtle,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.water_drop_outlined, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'No hydration entries yet. Log your water intake to see history here.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HydrationHistoryList extends StatelessWidget {
+  const _HydrationHistoryList({
+    required this.logs,
+    required this.localizations,
+  });
+
+  final List<HydrationLog> logs;
+  final MaterialLocalizations localizations;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleLogs = logs.length > 6 ? logs.take(6).toList() : logs;
+
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: visibleLogs.length,
+        separatorBuilder: (context, _) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final log = visibleLogs[index];
+          final timeLabel = localizations.formatTimeOfDay(
+            TimeOfDay.fromDateTime(log.timestamp),
+          );
+          final dateLabel = localizations.formatMediumDate(log.timestamp);
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppColors.primary.withOpacity(0.12),
+              child: const Icon(Icons.local_drink, color: AppColors.primary),
+            ),
+            title: Text('$timeLabel • ${log.amount} ml'),
+            subtitle: Text(dateLabel),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _QuickActionsCard extends StatelessWidget {
+  const _QuickActionsCard({required this.isPremium});
+
+  final bool isPremium;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.cardBackground,
+      shadowColor: AppColors.cardShadow,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.star_rounded, color: AppColors.secondary),
+                SizedBox(width: 12),
+                Text(
+                  'Quick actions',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _QuickChip(
+                  icon: Icons.notifications_active_outlined,
+                  label: 'Create reminder',
+                  onTap: () {},
+                ),
+                _QuickChip(
+                  icon: Icons.alarm_add_outlined,
+                  label: 'Schedule alarm',
+                  onTap: () {},
+                ),
+                _QuickChip(
+                  icon: Icons.map_outlined,
+                  label: isPremium ? 'New geofence' : 'Upgrade for geofence',
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickChip extends StatelessWidget {
+  const _QuickChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.chipBackground,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: AppColors.accent),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showSubscriptionSheet(
+  BuildContext context,
+  SubscriptionState subscriptionState,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              subscriptionState.isPremium
+                  ? 'Manage your premium plan'
+                  : 'Upgrade to Premium',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Enjoy location-based reminders, focus tools, and an ad-free experience.',
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Got it'),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

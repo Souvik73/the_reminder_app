@@ -124,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         'Adjust to match your lifestyle and activity level.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -226,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   radius: 24,
                   backgroundColor: subscriptionState.isPremium
                       ? AppColors.primary
-                      : AppColors.primary.withOpacity(0.12),
+                      : AppColors.primary.withValues(alpha: 0.12),
                   child: Icon(
                     subscriptionState.isPremium
                         ? Icons.verified

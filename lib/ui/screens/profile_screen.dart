@@ -150,7 +150,7 @@ class _ProfileHeaderCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 34,
-              backgroundColor: AppColors.primary.withOpacity(0.12),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
               child: const Icon(
                 Icons.person_outline,
                 size: 36,
@@ -172,7 +172,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                   Text(
                     isPremium ? 'Premium subscriber' : 'Free plan user',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -224,7 +224,7 @@ class _InfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -284,7 +284,7 @@ class _MetricCard extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -338,7 +338,7 @@ class _HydrationMetricCard extends StatelessWidget {
             Text(
               'Hydration progress',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -415,7 +415,7 @@ class _HydrationHistoryList extends StatelessWidget {
           final dateLabel = localizations.formatMediumDate(log.timestamp);
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.12),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
               child: const Icon(Icons.local_drink, color: AppColors.primary),
             ),
             title: Text('$timeLabel • ${log.amount} ml'),

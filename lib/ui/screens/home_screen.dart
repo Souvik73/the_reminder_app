@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onDestinationSelected: (index) =>
               setState(() => _currentIndex = index),
           backgroundColor: Colors.white,
-          indicatorColor: const Color(0xFF667EEA).withOpacity(0.18),
+          indicatorColor: const Color(0xFF667EEA).withValues(alpha: 0.18),
           surfaceTintColor: Colors.transparent,
           destinations: const [
             NavigationDestination(
@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               'No upcoming reminders. Create one with text or voice to stay organized.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.accent.withOpacity(0.6),
+                color: AppColors.accent.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -428,12 +428,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                               if (pickedDate != null) {
+                                if (!context.mounted) return;
                                 final pickedTime = await showTimePicker(
                                   context: context,
                                   initialTime: TimeOfDay.fromDateTime(
                                     scheduledAt,
                                   ),
                                 );
+                                if (!context.mounted) return;
                                 setModalState(() {
                                   scheduledAt = DateTime(
                                     pickedDate.year,
@@ -581,6 +583,8 @@ class _HomeScreenState extends State<HomeScreen> {
       notesController.dispose();
     });
 
+    if (!mounted) return;
+
     if (updated != null) {
       context.read<ReminderBloc>().add(ReminderUpserted(reminder: updated));
       ScaffoldMessenger.of(context).showSnackBar(
@@ -697,6 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context: context,
                           initialTime: selectedTime,
                         );
+                        if (!context.mounted) return;
                         if (picked != null) {
                           setModalState(() => selectedTime = picked);
                         }
@@ -785,6 +790,8 @@ class _HomeScreenState extends State<HomeScreen> {
     binding.addPostFrameCallback((_) {
       labelController.dispose();
     });
+
+    if (!mounted) return;
 
     if (result != null) {
       context.read<AlarmCubit>().upsertAlarm(result);
@@ -930,6 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
     binding.addPostFrameCallback((_) {
       controller.dispose();
     });
+    if (!mounted) return;
     if (newGoal != null) {
       context.read<HydrationCubit>().setDailyGoal(newGoal);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -940,6 +948,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleVoiceCapture() async {
     final recognized = await _simulateVoiceCapture();
+    if (!mounted) return;
     if (recognized != null && recognized.isNotEmpty) {
       _openReminderComposer(initialTitle: recognized, isVoice: true);
     }
@@ -1036,6 +1045,8 @@ class _HomeScreenState extends State<HomeScreen> {
       workController.dispose();
       restController.dispose();
     });
+
+    if (!mounted) return config;
 
     if (config != null) {
       context.read<PomodoroCubit>().setCustomDurations(
@@ -1199,7 +1210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     rootContext,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 24),
@@ -1339,7 +1350,7 @@ class _HomeDrawer extends StatelessWidget {
               child: Text(
                 'Swipe reminders up to mark them complete. Use undo if you change your mind.',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1500,7 +1511,7 @@ class _ReminderSection extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
         color: AppColors.cardBackground,
-        shadowColor: accent.withOpacity(0.2),
+        shadowColor: accent.withValues(alpha: 0.2),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
@@ -1601,7 +1612,7 @@ class _ReminderTile extends StatelessWidget {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
+            color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.all(16),
@@ -1637,7 +1648,7 @@ class _ReminderTile extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: accent.withOpacity(0.15),
+                            color: accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -1655,7 +1666,7 @@ class _ReminderTile extends StatelessWidget {
                       Text(
                         reminder.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -1762,7 +1773,7 @@ class _AlarmCard extends StatelessWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.12),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 child: Icon(Icons.alarm_outlined, color: AppColors.primary),
               ),
               title: const Text('Recurring alarms'),
@@ -1785,7 +1796,7 @@ class _AlarmCard extends StatelessWidget {
                       child: Text(
                         'No alarms yet. Create one to get repeating alerts.',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -1856,7 +1867,7 @@ class _HydrationGoalCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.12),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                   child: Icon(
                     Icons.local_drink_outlined,
                     color: AppColors.primary,
@@ -1897,7 +1908,7 @@ class _HydrationGoalCard extends StatelessWidget {
                 FilledButton.tonal(
                   onPressed: () => onQuickLog(200),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     foregroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -1909,7 +1920,7 @@ class _HydrationGoalCard extends StatelessWidget {
                 FilledButton.tonal(
                   onPressed: () => onQuickLog(400),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.secondary.withOpacity(0.1),
+                    backgroundColor: AppColors.secondary.withValues(alpha: 0.1),
                     foregroundColor: AppColors.secondary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -1983,7 +1994,7 @@ class _HydrationHistoryCard extends StatelessWidget {
                 child: Text(
                   'No history yet. Log your water to see it here.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               )
@@ -1995,7 +2006,7 @@ class _HydrationHistoryCard extends StatelessWidget {
                 final dateLabel = localizations.formatMediumDate(log.timestamp);
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(
                       Icons.water_drop_outlined,
                       color: theme.colorScheme.primary,
@@ -2041,7 +2052,7 @@ class _PomodoroCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.secondary.withOpacity(0.12),
+                  backgroundColor: AppColors.secondary.withValues(alpha: 0.12),
                   child: const Icon(
                     Icons.hourglass_bottom_outlined,
                     color: AppColors.secondary,
@@ -2151,7 +2162,7 @@ class _GeofenceCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.accent.withOpacity(0.12),
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.12),
                   child: const Icon(
                     Icons.location_on_outlined,
                     color: AppColors.accent,
@@ -2179,7 +2190,7 @@ class _GeofenceCard extends StatelessWidget {
                   ? 'Trigger reminders when you arrive at a selected place.'
                   : 'Unlock geofenced reminders and smart arrival alerts.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
@@ -2216,7 +2227,7 @@ class _GeofenceCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: AppColors.accent.withOpacity(0.2),
+                        color: AppColors.accent.withValues(alpha: 0.2),
                       ),
                     ),
                   );

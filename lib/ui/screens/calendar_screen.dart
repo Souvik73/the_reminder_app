@@ -183,7 +183,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: reminder.priority.color.withOpacity(0.15),
+                            color: reminder.priority.color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -226,7 +226,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   reminder.description,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
-                                        .withOpacity(0.7),
+                                        .withValues(alpha: 0.7),
                                   ),
                                 ),
                               ],
@@ -287,7 +287,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -313,8 +313,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           Text(
                             timeLabel,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.7,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.7,
                               ),
                             ),
                           ),

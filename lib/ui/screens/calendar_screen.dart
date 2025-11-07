@@ -64,48 +64,47 @@ class _CalendarScreenState extends State<CalendarScreen> {
           : null,
       child: DecoratedBox(
         decoration: const BoxDecoration(color: AppColors.pageBackground),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: CalendarDatePicker(
-                currentDate: DateTime.now(),
-                firstDate: DateTime(DateTime.now().year - 1),
-                lastDate: DateTime(DateTime.now().year + 2),
-                initialDate: _focusedDay,
-                onDateChanged: (date) {
-                  setState(() => _selectedDay = date);
-                },
-                onDisplayedMonthChanged: (date) {
-                  setState(() => _focusedDay = date);
-                },
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 140),
-                children: [
-                  if (filteredReminders.isEmpty)
-                    _EmptyStateCard(
-                      title: 'No reminders',
-                      description: _selectedDay == null
-                          ? 'Create a reminder to see it on your calendar.'
-                          : 'No reminders are scheduled for this day.',
-                      icon: Icons.event_available_outlined,
-                    )
-                  else
-                    ..._buildReminderSections(
-                      filteredReminders,
-                      localizations,
-                      theme,
-                    ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CalendarDatePicker(
+                  currentDate: DateTime.now(),
+                  firstDate: DateTime(DateTime.now().year - 1),
+                  lastDate: DateTime(DateTime.now().year + 2),
+                  initialDate: _focusedDay,
+                  onDateChanged: (date) {
+                    setState(() => _selectedDay = date);
+                  },
+                  onDisplayedMonthChanged: (date) {
+                    setState(() => _focusedDay = date);
+                  },
+                ),
+                const SizedBox(height: 24),
+                if (filteredReminders.isEmpty)
+                  _EmptyStateCard(
+                    title: 'No reminders',
+                    description: _selectedDay == null
+                        ? 'Create a reminder to see it on your calendar.'
+                        : 'No reminders are scheduled for this day.',
+                    icon: Icons.event_available_outlined,
+                  )
+                else
+                  ..._buildReminderSections(
+                    filteredReminders,
+                    localizations,
+                    theme,
+                  ),
+                if (alarms.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   _buildAlarmSection(alarms, theme, localizations),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

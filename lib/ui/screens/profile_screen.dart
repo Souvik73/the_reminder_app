@@ -176,21 +176,21 @@ class _ProfileHeaderCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _InfoPill(
                         icon: Icons.notifications_active_outlined,
                         label: '$reminders reminders',
                         color: AppColors.primary,
                       ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
+                      if (isPremium)
                         _InfoPill(
                           icon: Icons.workspace_premium,
                           label: 'Premium active',
                           color: AppColors.secondary,
                         ),
-                      ],
                     ],
                   ),
                 ],
@@ -232,12 +232,17 @@ class _InfoPill extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: color,
+              ),
             ),
           ),
         ],

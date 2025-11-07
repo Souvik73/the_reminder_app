@@ -18,7 +18,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _voiceShortcutsEnabled = true;
   bool _adsPersonalized = true;
   late double _goal;
 
@@ -64,17 +63,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _styledSwitch(
                 title: 'Enable smart notifications',
-                subtitle: 'Get alerted based on urgency and location.',
+                subtitle: 'Get alerted based on urgency and schedule.',
                 value: _notificationsEnabled,
                 onChanged: (value) =>
                     setState(() => _notificationsEnabled = value),
-              ),
-              _styledSwitch(
-                title: 'Voice shortcuts',
-                subtitle: 'Allow voice commands for quick reminders.',
-                value: _voiceShortcutsEnabled,
-                onChanged: (value) =>
-                    setState(() => _voiceShortcutsEnabled = value),
               ),
               _styledSwitch(
                 title: 'Personalized ads',
@@ -253,8 +245,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 4),
                       Text(
                         subscriptionState.isPremium
-                            ? 'Enjoy geofenced reminders and an ad-free experience.'
-                            : 'Unlock geofenced reminders, priority support, and an ad-free experience.',
+                            ? 'Enjoy priority support and an ad-free experience.'
+                            : 'Unlock advanced productivity tools, priority support, and an ad-free experience.',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],

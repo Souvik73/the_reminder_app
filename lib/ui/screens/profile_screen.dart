@@ -469,11 +469,6 @@ class _QuickActionsCard extends StatelessWidget {
                   label: 'Schedule alarm',
                   onTap: () {},
                 ),
-                _QuickChip(
-                  icon: Icons.map_outlined,
-                  label: isPremium ? 'New geofence' : 'Upgrade for geofence',
-                  onTap: () {},
-                ),
               ],
             ),
           ],

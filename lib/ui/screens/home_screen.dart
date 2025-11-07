@@ -172,11 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.search_rounded,
         onPressed: _showReminderSearch,
       ),
-      const SizedBox(width: 12),
-      GradientHeaderButton(
-        icon: Icons.mic_none_rounded,
-        onPressed: _handleVoiceCapture,
-      ),
     ];
 
     Widget bodyContent;
@@ -193,7 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
             _QuickEntryCard(
               controller: _quickReminderController,
               onTextSubmitted: _createReminderFromText,
-              onVoicePressed: _handleVoiceCapture,
               onAlarmPressed: () => _openAlarmComposer(),
             ),
             const SizedBox(height: 24),
@@ -255,16 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onStartSession: _startPomodoroSession,
             ),
             const SizedBox(height: 16),
-            _GeofenceCard(
-              reminderState: reminderState,
-              isPremium: subscriptionState.isPremium,
-              onCreateGeofence: () {
-                _openReminderComposer(
-                  initialTitle: 'Reminder when I arrive at...',
-                );
-              },
-              onUpgrade: _showSubscriptionSheet,
-            ),
             if (!subscriptionState.isPremium) ...[
               const SizedBox(height: 16),
               _AdBanner(onUpgrade: _showSubscriptionSheet),
@@ -314,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'No upcoming reminders. Create one with text or voice to stay organized.',
+              'No upcoming reminders. Create one to stay organized.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.accent.withValues(alpha: 0.6),
               ),
@@ -356,9 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openReminderComposer({
     Reminder? reminder,
     String? initialTitle,
-    bool isVoice = false,
   }) async {
-    final subscriptionState = context.read<SubscriptionCubit>().state;
     final titleController = TextEditingController(
       text: initialTitle ?? reminder?.title ?? '',
     );
@@ -368,9 +350,6 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime scheduledAt =
         reminder?.scheduledAt ?? DateTime.now().add(const Duration(hours: 1));
     ReminderPriority priority = reminder?.priority ?? ReminderPriority.medium;
-    bool isVoiceCreated = reminder?.isVoiceCreated ?? isVoice;
-    bool geofenced = reminder?.isGeofenced ?? false;
-    String? locationName = reminder?.locationName;
 
     final updated = await showModalBottomSheet<Reminder>(
       context: context,
@@ -481,56 +460,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: isVoiceCreated,
-                      onChanged: (value) =>
-                          setModalState(() => isVoiceCreated = value),
-                      title: const Text('Captured via voice'),
-                      subtitle: const Text(
-                        'Track reminders created with voice commands.',
-                      ),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: subscriptionState.isPremium && geofenced,
-                      onChanged: (value) async {
-                        if (!subscriptionState.isPremium) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Upgrade to Premium to enable geofenced reminders.',
-                            ),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                        return;
-                      }
-                        if (value) {
-                          final selected = await _pickLocation();
-                          if (selected != null) {
-                            setModalState(() {
-                              geofenced = true;
-                              locationName = selected;
-                            });
-                          }
-                        } else {
-                          setModalState(() {
-                            geofenced = false;
-                            locationName = null;
-                          });
-                        }
-                      },
-                      title: const Text('Trigger on arrival'),
-                      subtitle: Text(
-                        !subscriptionState.isPremium
-                            ? 'Premium feature'
-                            : locationName == null
-                            ? 'Select a location to trigger this reminder.'
-                            : 'Location: $locationName',
-                      ),
-                    ),
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerRight,
@@ -562,14 +491,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               description: notesController.text.trim(),
                               scheduledAt: scheduledAt,
                               priority: priority,
-                              isVoiceCreated: isVoiceCreated,
-                              isGeofenced:
-                                  subscriptionState.isPremium &&
-                                  geofenced &&
-                                  locationName != null,
-                              locationName: subscriptionState.isPremium
-                                  ? locationName
-                                  : null,
                             ),
                           );
                         },
@@ -630,27 +551,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-
-  Future<String?> _pickLocation() async {
-    const options = ['Home', 'Work', 'Gym', 'Supermarket', 'Pharmacy'];
-    return showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Select a location'),
-        children: [
-          for (final option in options)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop(option),
-              child: Text(option),
-            ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
   }
@@ -985,39 +885,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleVoiceCapture() async {
-    final recognized = await _simulateVoiceCapture();
-    if (!mounted) return;
-    if (recognized != null && recognized.isNotEmpty) {
-      _openReminderComposer(initialTitle: recognized, isVoice: true);
-    }
-  }
-
-  Future<String?> _simulateVoiceCapture() async {
-    const suggestions = [
-      'Call Dr. Singh tomorrow at 9am',
-      'Buy birthday gift when near the mall',
-      'Start Pomodoro at 3pm for coding session',
-    ];
-    return showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Simulated voice input'),
-        children: [
-          for (final suggestion in suggestions)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop(suggestion),
-              child: Text(suggestion),
-            ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Try again'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<_PomodoroConfig?> _selectCustomIntervals() async {
     final pomodoroState = context.read<PomodoroCubit>().state;
     final workController = TextEditingController(
@@ -1179,14 +1046,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.mic_none_outlined),
-                title: const Text('New reminder (voice)'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _handleVoiceCapture();
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.alarm_add_outlined),
                 title: const Text('Create alarm'),
                 onTap: () {
@@ -1246,7 +1105,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 subscriptionState.isPremium
                     ? 'Adjust your subscription, manage billing, or contact support.'
-                    : 'Unlock geofenced reminders, advanced Pomodoro analytics, and an ad-free experience.',
+                    : 'Unlock advanced Pomodoro analytics and an ad-free experience.',
                 textAlign: TextAlign.center,
                 style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
@@ -1438,13 +1297,11 @@ class _DrawerTile extends StatelessWidget {
 class _QuickEntryCard extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onTextSubmitted;
-  final VoidCallback onVoicePressed;
   final VoidCallback onAlarmPressed;
 
   const _QuickEntryCard({
     required this.controller,
     required this.onTextSubmitted,
-    required this.onVoicePressed,
     required this.onAlarmPressed,
   });
 
@@ -1487,43 +1344,24 @@ class _QuickEntryCard extends StatelessWidget {
             onSubmitted: (_) => onTextSubmitted(),
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.mic_none_outlined),
-                  label: const Text('Capture voice'),
-                  onPressed: onVoicePressed,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary, width: 1),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.alarm_add_outlined),
+              label: const Text('Create alarm'),
+              onPressed: onAlarmPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.secondary,
+                side: const BorderSide(
+                  color: AppColors.secondary,
+                  width: 1,
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.alarm_add_outlined),
-                  label: const Text('Create alarm'),
-                  onPressed: onAlarmPressed,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.secondary,
-                    side: const BorderSide(
-                      color: AppColors.secondary,
-                      width: 1,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1725,20 +1563,6 @@ class _ReminderTile extends StatelessWidget {
                           avatar: const Icon(Icons.timer_outlined, size: 16),
                           label: Text(dueLabel),
                         ),
-                        if (reminder.isVoiceCreated)
-                          const Chip(
-                            avatar: Icon(Icons.mic_none_outlined, size: 16),
-                            label: Text('Voice'),
-                          ),
-                        if (reminder.isGeofenced &&
-                            reminder.locationName != null)
-                          Chip(
-                            avatar: const Icon(
-                              Icons.location_on_outlined,
-                              size: 16,
-                            ),
-                            label: Text(reminder.locationName!),
-                          ),
                         Chip(
                           avatar: const Icon(Icons.flag_outlined, size: 16),
                           label: Text(reminder.priority.label),
@@ -2167,120 +1991,6 @@ class _PomodoroCard extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GeofenceCard extends StatelessWidget {
-  final ReminderState reminderState;
-  final bool isPremium;
-  final VoidCallback onCreateGeofence;
-  final VoidCallback onUpgrade;
-
-  const _GeofenceCard({
-    required this.reminderState,
-    required this.isPremium,
-    required this.onCreateGeofence,
-    required this.onUpgrade,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final geofencedReminders = reminderState.reminders
-        .where(
-          (reminder) => reminder.isGeofenced && reminder.locationName != null,
-        )
-        .toList();
-
-    return Card(
-      color: AppColors.cardBackground,
-      shadowColor: AppColors.cardShadow,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-                  child: const Icon(
-                    Icons.location_on_outlined,
-                    color: AppColors.accent,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Location-based reminders',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (!isPremium)
-                  FilledButton.tonal(
-                    onPressed: onUpgrade,
-                    child: const Text('Upgrade'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isPremium
-                  ? 'Trigger reminders when you arrive at a selected place.'
-                  : 'Unlock geofenced reminders and smart arrival alerts.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isPremium ? onCreateGeofence : onUpgrade,
-                icon: const Icon(Icons.add_location_alt_outlined),
-                label: Text(
-                  isPremium
-                      ? 'Create geofenced reminder'
-                      : 'See premium benefits',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-            if (geofencedReminders.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: geofencedReminders.map((reminder) {
-                  return Chip(
-                    avatar: const Icon(Icons.location_pin, size: 16),
-                    label: Text(reminder.locationName ?? 'Location'),
-                    backgroundColor: AppColors.chipBackground,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: AppColors.accent.withValues(alpha: 0.2),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
           ],
         ),
       ),

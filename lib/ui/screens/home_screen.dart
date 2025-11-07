@@ -334,7 +334,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final text = _quickReminderController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a reminder description first.')),
+        const SnackBar(
+          content: Text('Add a reminder description first.'),
+          duration: Duration(seconds: 3),
+        ),
       );
       return;
     }
@@ -342,7 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _quickReminderController.clear();
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Reminder created.')));
+    ).showSnackBar(
+      const SnackBar(
+        content: Text('Reminder created.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   Future<void> _openReminderComposer({
@@ -489,15 +497,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       value: subscriptionState.isPremium && geofenced,
                       onChanged: (value) async {
                         if (!subscriptionState.isPremium) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Upgrade to Premium to enable geofenced reminders.',
-                              ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Upgrade to Premium to enable geofenced reminders.',
                             ),
-                          );
-                          return;
-                        }
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                        return;
+                      }
                         if (value) {
                           final selected = await _pickLocation();
                           if (selected != null) {
@@ -529,15 +538,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           final title = titleController.text.trim();
                           if (title.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please add a title to your reminder.',
-                                ),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please add a title to your reminder.',
                               ),
-                            );
-                            return;
-                          }
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
                           final id =
                               reminder?.id ??
                               DateTime.now().microsecondsSinceEpoch.toString();
@@ -588,7 +598,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (updated != null) {
       context.read<ReminderBloc>().add(ReminderUpserted(reminder: updated));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reminder "${updated.title}" saved.')),
+        SnackBar(
+          content: Text('Reminder "${updated.title}" saved.'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -596,7 +609,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _deleteReminder(Reminder reminder) {
     context.read<ReminderBloc>().add(ReminderDeleted(reminderId: reminder.id));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder "${reminder.title}" deleted.')),
+      SnackBar(
+        content: Text('Reminder "${reminder.title}" deleted.'),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -605,6 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Marked "${reminder.title}" as complete.'),
+        duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () {
@@ -797,7 +814,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<AlarmCubit>().upsertAlarm(result);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Alarm "${result.label}" saved.')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text('Alarm "${result.label}" saved.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -805,14 +827,24 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<AlarmCubit>().deleteAlarm(alarm.id);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Alarm "${alarm.label}" removed.')));
+    ).showSnackBar(
+      SnackBar(
+        content: Text('Alarm "${alarm.label}" removed.'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _logHydration(int amount) {
     context.read<HydrationCubit>().logIntake(amount);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Logged $amount ml of water.')));
+    ).showSnackBar(
+      SnackBar(
+        content: Text('Logged $amount ml of water.'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   Future<void> _openHydrationLogSheet() async {
@@ -877,6 +909,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Enter a positive amount.'),
+                          duration: Duration(seconds: 3),
                         ),
                       );
                       return;
@@ -922,7 +955,10 @@ class _HomeScreenState extends State<HomeScreen> {
               final value = int.tryParse(controller.text.trim());
               if (value == null || value < 1000) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter at least 1000 ml.')),
+                  const SnackBar(
+                    content: Text('Enter at least 1000 ml.'),
+                    duration: Duration(seconds: 3),
+                  ),
                 );
                 return;
               }
@@ -941,7 +977,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (newGoal != null) {
       context.read<HydrationCubit>().setDailyGoal(newGoal);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Hydration goal set to $newGoal ml.')),
+        SnackBar(
+          content: Text('Hydration goal set to $newGoal ml.'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -1024,6 +1063,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Use positive numbers for custom intervals.'),
+                    duration: Duration(seconds: 3),
                   ),
                 );
                 return;
@@ -1107,6 +1147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   content: Text(
                                     'Open reminder "${reminder.title}"',
                                   ),
+                                  duration: const Duration(seconds: 3),
                                 ),
                               );
                             },
@@ -1223,6 +1264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ScaffoldMessenger.of(rootContext).showSnackBar(
                         const SnackBar(
                           content: Text('Subscription portal coming soon.'),
+                          duration: Duration(seconds: 3),
                         ),
                       );
                     } else {
@@ -1232,6 +1274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           content: Text(
                             'Premium activated. Enjoy the upgrade!',
                           ),
+                          duration: Duration(seconds: 3),
                         ),
                       );
                     }
@@ -1340,7 +1383,10 @@ class _HomeDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Support center coming soon.')),
+                  const SnackBar(
+                    content: Text('Support center coming soon.'),
+                    duration: Duration(seconds: 3),
+                  ),
                 );
               },
             ),
@@ -1983,6 +2029,7 @@ class _HydrationHistoryCard extends StatelessWidget {
                       content: Text(
                         'Detailed hydration analytics coming soon.',
                       ),
+                      duration: Duration(seconds: 3),
                     ),
                   );
                 },

@@ -92,6 +92,7 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
           ),
         );
         return;

@@ -63,6 +63,7 @@ class _RegisterPageState extends State<RegisterPage>
                 content: Text(state.message),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
@@ -116,9 +117,10 @@ class _RegisterPageState extends State<RegisterPage>
         children: [
           // Back Button and Title Row
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               IconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 icon: const Icon(
                   Icons.arrow_back_ios,
                   color: Colors.white,
@@ -136,7 +138,7 @@ class _RegisterPageState extends State<RegisterPage>
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 48), // Balance the back button
+              const SizedBox(width: 24), // Balance the back button
             ],
           ),
 

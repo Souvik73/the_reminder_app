@@ -276,6 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 content: Text(
                                   'Premium activated. Enjoy the upgrade!',
                                 ),
+                                duration: Duration(seconds: 3),
                               ),
                             );
                           },
@@ -299,6 +300,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Premium disabled.'),
+                                duration: Duration(seconds: 3),
                               ),
                             );
                           }
@@ -308,6 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 content: Text(
                                   'Attempting to restore purchases...',
                                 ),
+                                duration: Duration(seconds: 3),
                               ),
                             );
                           },

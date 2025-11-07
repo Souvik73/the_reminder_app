@@ -64,6 +64,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 content: Text(state.message),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
@@ -232,7 +233,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   );
                 },
                 onCreateAccount: () {
-                  context.go("/register_page");
+                  context.push("/register_page");
                 },
               ),
 

@@ -90,7 +90,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     // Login Form Section
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(top: 40),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -123,14 +122,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               color: Colors.white.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
-              Icons.notifications_active,
-              size: 50,
-              color: Colors.white,
+            child: Image.asset(
+              'assets/images/logo_trimmed.png',
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // App Name
           const Text(

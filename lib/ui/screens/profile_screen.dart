@@ -313,6 +313,7 @@ class _HydrationMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isGoalMet = hydrationGoal > 0 && hydrationLogged >= hydrationGoal;
     return Card(
       color: AppColors.cardBackground,
       shadowColor: AppColors.cardShadow,
@@ -325,11 +326,26 @@ class _HydrationMetricCard extends StatelessWidget {
           children: [
             const Icon(Icons.local_drink_outlined, color: AppColors.secondary),
             const SizedBox(height: 12),
-            Text(
-              '$hydrationLogged / $hydrationGoal ml',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    '$hydrationLogged / $hydrationGoal ml',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (isGoalMet) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 20,
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -341,9 +357,12 @@ class _HydrationMetricCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Hydration progress',
+              isGoalMet ? 'Goal completed for today' : 'Hydration progress',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: isGoalMet
+                    ? AppColors.success
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: isGoalMet ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],

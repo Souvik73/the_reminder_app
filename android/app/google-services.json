@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "266329530255",
+    "project_id": "the-reminder-app-7e0e4",
+    "storage_bucket": "the-reminder-app-7e0e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266329530255:android:8c4db3289d854e8a7ef5fa",
+        "android_client_info": {
+          "package_name": "com.example.the_reminder_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxsm8N2csSEiMLgMaeCmA8ay6CS1BRvWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

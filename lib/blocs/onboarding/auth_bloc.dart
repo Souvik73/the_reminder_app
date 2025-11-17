@@ -1,12 +1,18 @@
+import 'dart:convert';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
+import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthBloc({required PlannerRepository plannerRepository})
-    : _plannerRepository = plannerRepository,
-      super(AuthInitial()) {
+  AuthBloc({
+    required PlannerRepository plannerRepository,
+    required FirebaseUserSyncService userSyncService,
+  }) : _plannerRepository = plannerRepository,
+       _userSyncService = userSyncService,
+       super(AuthInitial()) {
     on<EmailSignInRequested>(_handleEmailSignIn);
     on<GoogleSignInRequested>(_handleSocialSignIn);
     on<AppleSignInRequested>(_handleSocialSignIn);
@@ -14,19 +20,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   final PlannerRepository _plannerRepository;
+  final FirebaseUserSyncService _userSyncService;
 
   Future<void> _handleEmailSignIn(
     EmailSignInRequested event,
     Emitter<AuthState> emit,
   ) async {
+    final normalizedEmail = _normalizeEmail(event.email);
+    if (normalizedEmail.isEmpty) {
+      emit(AuthFailure(message: 'Please enter a valid email address.'));
+      return;
+    }
+
     emit(AuthLoading());
     try {
       // Replace with real authentication logic when backend is ready.
       await Future.delayed(const Duration(milliseconds: 800));
       final user = await _plannerRepository.ensureUser(
-        userId: 'mock-user',
-        email: event.email,
+        userId: _buildUserIdFromEmail(normalizedEmail),
+        email: normalizedEmail,
+        displayName: _displayNameFromEmail(normalizedEmail),
       );
+      await _userSyncService.syncLogin(user: user, loginMethod: 'email');
       emit(AuthSuccess(userId: user.id, email: user.email));
     } catch (error) {
       emit(AuthFailure(message: 'Unable to sign in. Please try again.'));
@@ -47,6 +62,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: 'google-user@example.com',
           displayName: 'Google User',
         );
+        await _userSyncService.syncLogin(user: user, loginMethod: 'google');
         emit(AuthSuccess(userId: user.id, email: user.email));
       } else if (event is AppleSignInRequested) {
         final user = await _plannerRepository.ensureUser(
@@ -54,6 +70,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: 'apple-user@example.com',
           displayName: 'Apple User',
         );
+        await _userSyncService.syncLogin(user: user, loginMethod: 'apple');
         emit(AuthSuccess(userId: user.id, email: user.email));
       } else {
         emit(AuthFailure(message: 'Unsupported sign in method.'));
@@ -65,5 +82,33 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   void _handleSignOut(SignOutRequested event, Emitter<AuthState> emit) {
     emit(AuthInitial());
+  }
+
+  String _normalizeEmail(String rawEmail) => rawEmail.trim().toLowerCase();
+
+  String _buildUserIdFromEmail(String normalizedEmail) {
+    final safeEncoded =
+        base64Url.encode(utf8.encode(normalizedEmail)).replaceAll('=', '');
+    return 'email-$safeEncoded';
+  }
+
+  String? _displayNameFromEmail(String normalizedEmail) {
+    if (!normalizedEmail.contains('@')) {
+      return null;
+    }
+    final localPart = normalizedEmail.split('@').first;
+    if (localPart.isEmpty) {
+      return null;
+    }
+    final segments = localPart
+        .split(RegExp(r'[.\-_]+'))
+        .where((segment) => segment.isNotEmpty)
+        .map((segment) =>
+            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}')
+        .toList();
+    if (segments.isEmpty) {
+      return null;
+    }
+    return segments.join(' ');
   }
 }

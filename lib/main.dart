@@ -11,10 +11,13 @@ import 'package:the_reminder_app/injector.dart' as injection;
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await injection.init();
   runApp(const MyApp());
 }

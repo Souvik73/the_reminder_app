@@ -1,5 +1,3 @@
-// lib/features/authentication/presentation/pages/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -295,9 +293,3 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 }
-
-// lib/features/authentication/presentation/widgets/social_login_widget.dart
-
-// lib/features/authentication/presentation/widgets/auth_form_widget.dart
-
-// lib/features/authentication/presentation/bloc/auth_event.dart

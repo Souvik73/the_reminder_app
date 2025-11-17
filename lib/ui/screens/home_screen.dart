@@ -327,9 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     context.read<ReminderBloc>().add(ReminderCreatedFromText(text));
     _quickReminderController.clear();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Reminder created.'),
         duration: Duration(seconds: 3),
@@ -467,16 +465,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           final title = titleController.text.trim();
                           if (title.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please add a title to your reminder.',
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please add a title to your reminder.',
+                                ),
+                                duration: Duration(seconds: 3),
                               ),
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                          return;
-                        }
+                            );
+                            return;
+                          }
                           final id =
                               reminder?.id ??
                               DateTime.now().microsecondsSinceEpoch.toString();
@@ -712,9 +710,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result != null) {
       context.read<AlarmCubit>().upsertAlarm(result);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Alarm "${result.label}" saved.'),
           duration: const Duration(seconds: 3),
@@ -725,9 +721,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _deleteAlarm(AlarmEntry alarm) {
     context.read<AlarmCubit>().deleteAlarm(alarm.id);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Alarm "${alarm.label}" removed.'),
         duration: const Duration(seconds: 3),
@@ -737,9 +731,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _logHydration(int amount) {
     context.read<HydrationCubit>().logIntake(amount);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Logged $amount ml of water.'),
         duration: const Duration(seconds: 3),
@@ -1352,10 +1344,7 @@ class _QuickEntryCard extends StatelessWidget {
               onPressed: onAlarmPressed,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.secondary,
-                side: const BorderSide(
-                  color: AppColors.secondary,
-                  width: 1,
-                ),
+                side: const BorderSide(color: AppColors.secondary, width: 1),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -1550,7 +1539,9 @@ class _ReminderTile extends StatelessWidget {
                       Text(
                         reminder.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ],
@@ -1666,7 +1657,9 @@ class _AlarmCard extends StatelessWidget {
                       child: Text(
                         'No alarms yet. Create one to get repeating alerts.',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ),
@@ -1724,6 +1717,52 @@ class _HydrationGoalCard extends StatelessWidget {
             0.0,
             1.0,
           );
+    final bool isGoalMet = hydrationState.dailyGoal > 0 && progress >= 1.0;
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 420),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: isGoalMet
+          ? _HydrationSuccessCard(
+              key: const ValueKey('hydration-success'),
+              hydrationState: hydrationState,
+              onCustomLog: onCustomLog,
+              onSetGoal: onSetGoal,
+            )
+          : _HydrationGoalProgressCard(
+              key: const ValueKey('hydration-progress'),
+              hydrationState: hydrationState,
+              progress: progress,
+              theme: theme,
+              onQuickLog: onQuickLog,
+              onCustomLog: onCustomLog,
+              onSetGoal: onSetGoal,
+            ),
+    );
+  }
+}
+
+class _HydrationGoalProgressCard extends StatelessWidget {
+  const _HydrationGoalProgressCard({
+    super.key,
+    required this.hydrationState,
+    required this.progress,
+    required this.theme,
+    required this.onQuickLog,
+    required this.onCustomLog,
+    required this.onSetGoal,
+  });
+
+  final HydrationState hydrationState;
+  final double progress;
+  final ThemeData theme;
+  final ValueChanged<int> onQuickLog;
+  final VoidCallback onCustomLog;
+  final VoidCallback onSetGoal;
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       color: AppColors.cardBackground,
       shadowColor: AppColors.cardShadow,
@@ -1820,6 +1859,104 @@ class _HydrationGoalCard extends StatelessWidget {
   }
 }
 
+class _HydrationSuccessCard extends StatelessWidget {
+  const _HydrationSuccessCard({
+    super.key,
+    required this.hydrationState,
+    required this.onCustomLog,
+    required this.onSetGoal,
+  });
+
+  final HydrationState hydrationState;
+  final VoidCallback onCustomLog;
+  final VoidCallback onSetGoal;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: AppColors.success,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.success.withValues(alpha: 0.95),
+              AppColors.success.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              height: 88,
+              width: 88,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 56,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Goal completed!',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${hydrationState.totalIntake} ml logged today.\nStay hydrated and keep it up!',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                FilledButton(
+                  onPressed: onCustomLog,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('Log extra water'),
+                ),
+                TextButton(
+                  onPressed: onSetGoal,
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  child: const Text('Adjust goal'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HydrationHistoryCard extends StatelessWidget {
   final HydrationState hydrationState;
 
@@ -1877,7 +2014,9 @@ class _HydrationHistoryCard extends StatelessWidget {
                 final dateLabel = localizations.formatMediumDate(log.timestamp);
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
                     child: Icon(
                       Icons.water_drop_outlined,
                       color: theme.colorScheme.primary,

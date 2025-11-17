@@ -1468,20 +1468,18 @@ class _ReminderTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Dismissible(
         key: ValueKey(reminder.id),
-        direction: DismissDirection.up,
-        confirmDismiss: (direction) async => direction == DismissDirection.up,
+        direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async =>
+            direction == DismissDirection.startToEnd ||
+            direction == DismissDirection.endToStart,
         onDismissed: (_) => onCompleted(),
-        background: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.check_circle_outline,
-            color: Colors.white,
-            size: 36,
-          ),
+        background: _DismissibleActionBackground(
+          alignment: Alignment.centerLeft,
+          theme: theme,
+        ),
+        secondaryBackground: _DismissibleActionBackground(
+          alignment: Alignment.centerRight,
+          theme: theme,
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -1690,6 +1688,34 @@ class _AlarmCard extends StatelessWidget {
               }),
           ],
         ),
+      ),
+    );
+  }
+
+}
+
+class _DismissibleActionBackground extends StatelessWidget {
+  const _DismissibleActionBackground({
+    required this.alignment,
+    required this.theme,
+  });
+
+  final Alignment alignment;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: const Icon(
+        Icons.check_circle_outline,
+        color: Colors.white,
+        size: 32,
       ),
     );
   }

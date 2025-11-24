@@ -5,11 +5,13 @@ class ReminderState extends Equatable {
   final List<Reminder> reminders;
   final String activeUserId;
   final bool isLoading;
+  final int permissionWarningCounter;
 
   const ReminderState({
     required this.reminders,
     required this.activeUserId,
     required this.isLoading,
+    required this.permissionWarningCounter,
   });
 
   factory ReminderState.initial(String userId) {
@@ -17,6 +19,7 @@ class ReminderState extends Equatable {
       reminders: const [],
       activeUserId: userId,
       isLoading: true,
+      permissionWarningCounter: 0,
     );
   }
 
@@ -24,11 +27,14 @@ class ReminderState extends Equatable {
     List<Reminder>? reminders,
     String? activeUserId,
     bool? isLoading,
+    int? permissionWarningCounter,
   }) {
     return ReminderState(
       reminders: reminders ?? this.reminders,
       activeUserId: activeUserId ?? this.activeUserId,
       isLoading: isLoading ?? this.isLoading,
+      permissionWarningCounter:
+          permissionWarningCounter ?? this.permissionWarningCounter,
     );
   }
 
@@ -50,5 +56,6 @@ class ReminderState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [reminders, activeUserId, isLoading];
+  List<Object?> get props =>
+      [reminders, activeUserId, isLoading, permissionWarningCounter];
 }

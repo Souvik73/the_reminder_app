@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 /// Persists authentication events to Firebase so they stay in sync with Hive.
 class FirebaseUserSyncService {
@@ -7,17 +9,21 @@ class FirebaseUserSyncService {
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  static bool _timezoneInitialized = false;
+  static const String _istTimeZoneName = 'Asia/Kolkata';
 
   Future<void> syncLogin({
     required AppUser user,
     required String loginMethod,
   }) async {
+    _ensureTimeZoneInitialized();
     final userDoc = _firestore.collection('users').doc(user.id);
     final now = FieldValue.serverTimestamp();
+    final DateTime createdAtIst = _toIstDate(user.createdAt);
 
     final payload = <String, dynamic>{
       'email': user.email,
-      'localCreatedAt': Timestamp.fromDate(user.createdAt.toUtc()),
+      'localCreatedAt': Timestamp.fromDate(createdAtIst),
       'lastLoginAt': now,
       'lastLoginMethod': loginMethod,
       'syncedAt': now,
@@ -33,5 +39,16 @@ class FirebaseUserSyncService {
       'method': loginMethod,
       'loggedInAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  void _ensureTimeZoneInitialized() {
+    if (_timezoneInitialized) return;
+    tz.initializeTimeZones();
+    _timezoneInitialized = true;
+  }
+
+  DateTime _toIstDate(DateTime dateTime) {
+    final location = tz.getLocation(_istTimeZoneName);
+    return tz.TZDateTime.from(dateTime, location);
   }
 }

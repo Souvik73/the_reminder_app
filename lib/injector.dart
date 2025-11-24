@@ -5,6 +5,7 @@ import 'package:the_reminder_app/config/routes.dart';
 import 'package:the_reminder_app/data/local/hive_initializer.dart';
 import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
+import 'package:the_reminder_app/services/notification_service.dart';
 
 final locator = GetIt.instance;
 
@@ -21,9 +22,12 @@ Future<void> init() async {
 
   final firestore = FirebaseFirestore.instance;
   final userSyncService = FirebaseUserSyncService(firestore: firestore);
+  final notificationService = NotificationService();
+  await notificationService.init();
 
   locator.registerLazySingleton<PlannerRepository>(() => plannerRepository);
   locator.registerLazySingleton<FirebaseUserSyncService>(() => userSyncService);
+  locator.registerSingleton<NotificationService>(notificationService);
   locator.registerLazySingleton(() => AppRouter.router);
   locator.registerFactory<AuthBloc>(
     () => AuthBloc(plannerRepository: locator(), userSyncService: locator()),

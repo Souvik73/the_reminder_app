@@ -12,6 +12,7 @@ import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:the_reminder_app/services/notification_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -47,6 +48,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(
           create: (context) => ReminderBloc(
             repository: plannerRepository,
+            notificationService: injection.locator<NotificationService>(),
             initialUserId: defaultUserId,
           ),
         ),

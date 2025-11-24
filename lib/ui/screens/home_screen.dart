@@ -14,7 +14,9 @@ import 'package:the_reminder_app/blocs/reminder/reminder_event.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
+import 'package:the_reminder_app/injector.dart' as injection;
 import 'package:the_reminder_app/models/planner_models.dart';
+import 'package:the_reminder_app/services/notification_service.dart';
 import 'package:the_reminder_app/ui/screens/calendar_screen.dart';
 import 'package:the_reminder_app/ui/screens/pomodoro_session_screen.dart';
 import 'package:the_reminder_app/ui/screens/profile_screen.dart';
@@ -72,6 +74,27 @@ class _HomeScreenState extends State<HomeScreen> {
     _scaffoldKey.currentState?.openDrawer();
   }
 
+  void _showExactAlarmPermissionWarning() {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Enable “Exact alarms” in system settings so reminders arrive on time.',
+        ),
+        action: SnackBarAction(
+          label: 'Open settings',
+          onPressed: () {
+            injection
+                .locator<NotificationService>()
+                .openExactAlarmPermissionSettings();
+          },
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+  }
+
   String _userIdFromState(AuthState state) {
     if (state is AuthSuccess) {
       return state.userId;
@@ -87,12 +110,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final subscriptionState = context.watch<SubscriptionCubit>().state;
     final pomodoroState = context.watch<PomodoroCubit>().state;
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          _userIdFromState(previous) != _userIdFromState(current),
-      listener: (context, state) {
-        _syncUserScope(_userIdFromState(state));
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              _userIdFromState(previous) != _userIdFromState(current),
+          listener: (context, state) {
+            _syncUserScope(_userIdFromState(state));
+          },
+        ),
+        BlocListener<ReminderBloc, ReminderState>(
+          listenWhen: (previous, current) =>
+              previous.permissionWarningCounter !=
+              current.permissionWarningCounter,
+          listener: (context, state) {
+            _showExactAlarmPermissionWarning();
+          },
+        ),
+      ],
       child: Scaffold(
         key: _scaffoldKey,
         drawer: _HomeDrawer(

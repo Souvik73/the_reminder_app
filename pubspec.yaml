@@ -69,6 +69,7 @@ dependencies:
   intl:               ^0.20.2  # formatting dates/times
   get_it: ^8.0.3
   timezone: ^0.10.1          # time-zone aware scheduling
+  flutter_timezone: ^5.0.1
 
   # - Splash Screen
   flutter_native_splash: ^2.4.6

@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 /// Result from attempting to schedule a reminder notification.
 enum NotificationScheduleResult {
@@ -15,27 +16,31 @@ enum NotificationScheduleResult {
 /// Handles initializing and scheduling reminder notifications with the
 /// `flutter_local_notifications` plugin.
 class NotificationService {
-  NotificationService() : _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  NotificationService()
+    : _notificationsPlugin = FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
-  static const MethodChannel _timezoneChannel =
-      MethodChannel('the_reminder_app/timezone');
+  static const MethodChannel _timezoneChannel = MethodChannel(
+    'the_reminder_app/timezone',
+  );
   bool _initialized = false;
   bool _timeZoneInitialized = false;
 
-  static const String _reminderChannelId = 'reminders_channel';
-  static const String _reminderChannelName = 'Reminders';
+  static const String _reminderChannelId = 'the_reminder_app';
+  static const String _reminderChannelName = 'Notification';
   static const String _reminderChannelDescription =
       'Notifications that fire when reminders are due.';
   static const String _reminderPayloadPrefix = 'reminder:';
-  static const String _defaultTimeZoneName = 'Asia/Kolkata';
+  // static const String _defaultTimeZoneName = 'Asia/Kolkata';
 
   Future<void> init() async {
     if (_initialized || kIsWeb) return;
 
     await _ensureTimeZoneData();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -69,16 +74,12 @@ class NotificationService {
       return NotificationScheduleResult.failed;
     }
 
-    if (reminder.scheduledAt.isBefore(DateTime.now())) {
-      // Reminder already elapsed. Ensure any pending notification is cancelled.
-      await cancelReminder(reminder.id);
-      return NotificationScheduleResult.scheduledExact;
-    }
-    
-    final tz.Location targetTimeZone = tz.getLocation(_defaultTimeZoneName);
-    // Use the configured local timezone (populated from platform; falls back to IST).
-    final tz.TZDateTime scheduledTime =
-        tz.TZDateTime.from(reminder.scheduledAt, targetTimeZone);
+    StyleInformation? bigPictureStyleInformation = BigPictureStyleInformation(
+      FilePathAndroidBitmap("assets/images/logo.png"),
+      largeIcon: FilePathAndroidBitmap("assets/images/logo.png"),
+      contentTitle: reminder.title,
+      summaryText: reminder.description,
+    );
 
     final notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -89,9 +90,7 @@ class NotificationService {
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
-        styleInformation: reminder.description.isEmpty
-            ? null
-            : BigTextStyleInformation(reminder.description),
+        styleInformation: bigPictureStyleInformation,
       ),
       iOS: const DarwinNotificationDetails(
         interruptionLevel: InterruptionLevel.timeSensitive,
@@ -108,24 +107,35 @@ class NotificationService {
 
     AndroidScheduleMode scheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
     bool requiresExactAlarmPermission = false;
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidImplementation != null) {
-      final bool? canScheduleExact =
-          await androidImplementation.canScheduleExactNotifications();
+      final bool? canScheduleExact = await androidImplementation
+          .canScheduleExactNotifications();
       if (canScheduleExact == false) {
         requiresExactAlarmPermission = true;
         scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
       }
+    }
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate = tz.TZDateTime.from(
+      reminder.scheduledAt,
+      tz.local,
+    );
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = now.add(const Duration(minutes: 1));
     }
 
     try {
       await _notificationsPlugin.zonedSchedule(
         _notificationId(reminder.id),
         reminder.title,
-        reminder.description.isEmpty ? 'Reminder due now' : reminder.description,
-        scheduledTime,
+        reminder.description.isEmpty
+            ? 'Reminder due now'
+            : reminder.description,
+        now.add(const Duration(minutes: 1)),
         notificationDetails,
         androidScheduleMode: scheduleMode,
         payload: '$_reminderPayloadPrefix${reminder.id}',
@@ -144,9 +154,9 @@ class NotificationService {
             reminder.description.isEmpty
                 ? 'Reminder due now'
                 : reminder.description,
-            scheduledTime,
+            scheduledDate,
             notificationDetails,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            androidScheduleMode: scheduleMode,
             payload: '$_reminderPayloadPrefix${reminder.id}',
           );
           await _logStatusDebug('scheduled-fallback:${reminder.id}');
@@ -158,9 +168,7 @@ class NotificationService {
           debugPrint('$fallbackStack');
         }
       } else {
-        debugPrint(
-          'Failed to schedule reminder ${reminder.id}: $error',
-        );
+        debugPrint('Failed to schedule reminder ${reminder.id}: $error');
         debugPrint('$stackTrace');
       }
     } catch (error, stackTrace) {
@@ -171,10 +179,7 @@ class NotificationService {
   }
 
   /// Fire an immediate, one-off notification to verify device delivery.
-  Future<void> triggerDebugNotification({
-    String? title,
-    String? body,
-  }) async {
+  Future<void> triggerDebugNotification({String? title, String? body}) async {
     if (kIsWeb) return;
     await init();
     if (!_initialized) return;
@@ -259,37 +264,39 @@ class NotificationService {
 
     tz.initializeTimeZones();
     await _configureLocalTimeZone();
-    // If for any reason the platform lookup failed and tz.local stayed UTC,
-    // fall back to IST to avoid misfiring schedules.
-    if (tz.local.name == 'UTC') {
-      tz.setLocalLocation(tz.getLocation(_defaultTimeZoneName));
-      debugPrint(
-        '[NotificationService] tz.local was UTC after configure; '
-        'falling back to $_defaultTimeZoneName',
-      );
+    // Get Proper timezone for the user notifications.
+    try {
+      final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+    } catch (error, stackTrace) {
+      debugPrint('Failed to update timezone from platform: $error');
+      debugPrint('$stackTrace');
     }
     _timeZoneInitialized = true;
   }
 
   Future<void> _requestPermissions() async {
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidImplementation?.requestNotificationsPermission();
     await androidImplementation?.requestExactAlarmsPermission();
 
-    final iosImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+    final iosImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     await iosImplementation?.requestPermissions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    final macImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            MacOSFlutterLocalNotificationsPlugin>();
+    final macImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >();
     await macImplementation?.requestPermissions(
       alert: true,
       badge: true,
@@ -298,23 +305,25 @@ class NotificationService {
   }
 
   Future<bool> _ensureNotificationPermission() async {
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    final bool? androidEnabled =
-        await androidImplementation?.areNotificationsEnabled();
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final bool? androidEnabled = await androidImplementation
+        ?.areNotificationsEnabled();
     if (androidEnabled == false) {
       await androidImplementation!.requestNotificationsPermission();
-      final bool? retried =
-          await androidImplementation.areNotificationsEnabled();
+      final bool? retried = await androidImplementation
+          .areNotificationsEnabled();
       if (retried == false) {
         return false;
       }
     }
 
-    final iosImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+    final iosImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     final iosPermissions = await iosImplementation?.checkPermissions();
     if (iosPermissions != null && iosPermissions.isEnabled == false) {
       final bool? granted = await iosImplementation!.requestPermissions(
@@ -327,9 +336,10 @@ class NotificationService {
       }
     }
 
-    final macImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            MacOSFlutterLocalNotificationsPlugin>();
+    final macImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >();
     final macPermissions = await macImplementation?.checkPermissions();
     if (macPermissions != null && macPermissions.isEnabled == false) {
       final bool? granted = await macImplementation!.requestPermissions(
@@ -346,9 +356,10 @@ class NotificationService {
   }
 
   Future<void> openExactAlarmPermissionSettings() async {
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidImplementation?.requestExactAlarmsPermission();
   }
 
@@ -362,8 +373,9 @@ class NotificationService {
 
   Future<void> _configureLocalTimeZone() async {
     try {
-      final String? localTimeZone =
-          await _timezoneChannel.invokeMethod<String>('getTimeZone');
+      final String? localTimeZone = await _timezoneChannel.invokeMethod<String>(
+        'getTimeZone',
+      );
       if (localTimeZone != null && localTimeZone.isNotEmpty) {
         tz.setLocalLocation(tz.getLocation(localTimeZone));
         return;
@@ -372,30 +384,32 @@ class NotificationService {
       debugPrint('Failed to determine timezone: $error');
       debugPrint('$stackTrace');
     }
-    tz.setLocalLocation(tz.getLocation(_defaultTimeZoneName));
+    tz.setLocalLocation(tz.getLocation(tz.local.name));
   }
 
   Future<void> _logStatusDebug(String context) async {
     if (kIsWeb) return;
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    final iosImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
-    final macImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            MacOSFlutterLocalNotificationsPlugin>();
-    final bool? androidEnabled =
-        await androidImplementation?.areNotificationsEnabled();
-    final bool? canScheduleExact =
-        await androidImplementation?.canScheduleExactNotifications();
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final iosImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+    final macImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >();
+    final bool? androidEnabled = await androidImplementation
+        ?.areNotificationsEnabled();
+    final bool? canScheduleExact = await androidImplementation
+        ?.canScheduleExactNotifications();
     final iosPermissions = await iosImplementation?.checkPermissions();
     final macPermissions = await macImplementation?.checkPermissions();
-    final pending =
-        await _notificationsPlugin.pendingNotificationRequests().catchError(
-              (_) => <PendingNotificationRequest>[],
-            );
+    final pending = await _notificationsPlugin
+        .pendingNotificationRequests()
+        .catchError((_) => <PendingNotificationRequest>[]);
 
     debugPrint(
       '[NotificationService:$context] '

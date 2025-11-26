@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -23,6 +26,7 @@ class NotificationService {
   static const MethodChannel _timezoneChannel = MethodChannel(
     'the_reminder_app/timezone',
   );
+  static const String _defaultSmallIcon = '@mipmap/launcher_icon';
   bool _initialized = false;
   bool _timeZoneInitialized = false;
 
@@ -33,13 +37,16 @@ class NotificationService {
   static const String _reminderPayloadPrefix = 'reminder:';
   // static const String _defaultTimeZoneName = 'Asia/Kolkata';
 
+  String? _cachedLargeIconPath;
+  String? _cachedBigPicturePath;
+
   Future<void> init() async {
     if (_initialized || kIsWeb) return;
 
     await _ensureTimeZoneData();
 
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      _defaultSmallIcon,
     );
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -74,11 +81,8 @@ class NotificationService {
       return NotificationScheduleResult.failed;
     }
 
-    StyleInformation? bigPictureStyleInformation = BigPictureStyleInformation(
-      FilePathAndroidBitmap("assets/images/logo.png"),
-      largeIcon: FilePathAndroidBitmap("assets/images/logo.png"),
-      contentTitle: reminder.title,
-      summaryText: reminder.description,
+    final bigPictureStyleInformation = await _buildBigPictureStyleInformation(
+      reminder,
     );
 
     final notificationDetails = NotificationDetails(
@@ -86,8 +90,13 @@ class NotificationService {
         _reminderChannelId,
         _reminderChannelName,
         channelDescription: _reminderChannelDescription,
+        icon: _defaultSmallIcon,
         importance: Importance.high,
-        priority: Priority.high,
+        priority: reminder.priority == ReminderPriority.high
+            ? Priority.max
+            : reminder.priority == ReminderPriority.medium
+            ? Priority.defaultPriority
+            : Priority.low,
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
         styleInformation: bigPictureStyleInformation,
@@ -135,7 +144,7 @@ class NotificationService {
         reminder.description.isEmpty
             ? 'Reminder due now'
             : reminder.description,
-        now.add(const Duration(minutes: 1)),
+        scheduledDate,
         notificationDetails,
         androidScheduleMode: scheduleMode,
         payload: '$_reminderPayloadPrefix${reminder.id}',
@@ -178,6 +187,65 @@ class NotificationService {
     return NotificationScheduleResult.failed;
   }
 
+  Future<StyleInformation?> _buildBigPictureStyleInformation(
+    Reminder reminder,
+  ) async {
+    final bigPicturePath =
+        _cachedBigPicturePath ??
+        await _cacheAssetImage(
+          assetPath: 'assets/images/logo.png',
+          fileName: 'reminder_big_picture.png',
+        );
+    if (bigPicturePath != null) {
+      _cachedBigPicturePath = bigPicturePath;
+    }
+
+    final largeIconPath =
+        _cachedLargeIconPath ??
+        await _cacheAssetImage(
+          assetPath: 'assets/images/logo.png',
+          fileName: 'reminder_large_icon.png',
+        );
+    if (largeIconPath != null) {
+      _cachedLargeIconPath = largeIconPath;
+    }
+
+    if (bigPicturePath == null || largeIconPath == null) {
+      return null;
+    }
+
+    return BigPictureStyleInformation(
+      FilePathAndroidBitmap(bigPicturePath),
+      largeIcon: FilePathAndroidBitmap(largeIconPath),
+      contentTitle: reminder.title,
+      summaryText: reminder.description,
+    );
+  }
+
+  Future<String?> _cacheAssetImage({
+    required String assetPath,
+    required String fileName,
+  }) async {
+    try {
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      if (await file.exists()) {
+        return filePath;
+      }
+      final byteData = await rootBundle.load(assetPath);
+      final bytes = byteData.buffer.asUint8List(
+        byteData.offsetInBytes,
+        byteData.lengthInBytes,
+      );
+      await file.writeAsBytes(bytes);
+      return filePath;
+    } catch (error) {
+      debugPrint('Failed to cache image $assetPath for notification: $error');
+      return null;
+    }
+  }
+
   /// Fire an immediate, one-off notification to verify device delivery.
   Future<void> triggerDebugNotification({String? title, String? body}) async {
     if (kIsWeb) return;
@@ -194,8 +262,9 @@ class NotificationService {
         _reminderChannelId,
         _reminderChannelName,
         channelDescription: _reminderChannelDescription,
+        icon: _defaultSmallIcon,
         importance: Importance.high,
-        priority: Priority.high,
+        priority: Priority.max,
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
       ),

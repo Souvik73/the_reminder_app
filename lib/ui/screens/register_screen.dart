@@ -224,11 +224,11 @@ class _RegisterPageState extends State<RegisterPage>
               // Social Login Buttons
               SocialLoginWidget(
                 onGooglePressed: () {
-                  // context.read<AuthBloc>().add(GoogleSignUpRequested());
+                  context.read<AuthBloc>().add(GoogleSignInRequested());
                 },
                 onApplePressed: Platform.isIOS
                     ? () {
-                        // context.read<AuthBloc>().add(AppleSignUpRequested());
+                        context.read<AuthBloc>().add(AppleSignInRequested());
                       }
                     : null,
                 isLoading: state is AuthLoading,

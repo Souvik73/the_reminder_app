@@ -198,11 +198,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               // Social Login Buttons
               SocialLoginWidget(
                 onGooglePressed: () {
-                  // context.read<AuthBloc>().add(GoogleSignInRequested());
+                  context.read<AuthBloc>().add(GoogleSignInRequested());
                 },
                 onApplePressed: Platform.isIOS
                     ? () {
-                        // context.read<AuthBloc>().add(AppleSignInRequested());
+                        context.read<AuthBloc>().add(AppleSignInRequested());
                       }
                     : null,
                 isLoading: state is AuthLoading,

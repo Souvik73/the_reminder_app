@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
 import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
@@ -13,9 +16,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required PlannerRepository plannerRepository,
     required FirebaseUserSyncService userSyncService,
     required AuthSessionStore sessionStore,
+    FirebaseAuth? firebaseAuth,
+    GoogleSignIn? googleSignIn,
   }) : _plannerRepository = plannerRepository,
        _userSyncService = userSyncService,
        _sessionStore = sessionStore,
+       _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _googleSignIn = googleSignIn ?? GoogleSignIn(),
        super(AuthInitial()) {
     on<RestoreSessionRequested>(_handleRestoreSession);
     on<EmailSignInRequested>(_handleEmailSignIn);
@@ -28,6 +35,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final PlannerRepository _plannerRepository;
   final FirebaseUserSyncService _userSyncService;
   final AuthSessionStore _sessionStore;
+  final FirebaseAuth _firebaseAuth;
+  final GoogleSignIn _googleSignIn;
 
   Future<void> _handleEmailSignIn(
     EmailSignInRequested event,
@@ -68,13 +77,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
-
       if (event is GoogleSignInRequested) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          emit(AuthInitial());
+          return;
+        }
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        final userCredential =
+            await _firebaseAuth.signInWithCredential(credential);
+        final firebaseUser = userCredential.user;
+        if (firebaseUser == null || firebaseUser.email == null) {
+          throw FirebaseAuthException(
+            code: 'missing-user',
+            message: 'Unable to read Google account details',
+          );
+        }
         final user = await _plannerRepository.ensureUser(
-          userId: 'google-user',
-          email: 'google-user@example.com',
-          displayName: 'Google User',
+          userId: firebaseUser.uid,
+          email: firebaseUser.email!,
+          displayName: firebaseUser.displayName,
         );
         await _userSyncService.syncLogin(user: user, loginMethod: 'google');
         await _sessionStore.save(
@@ -104,6 +130,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthFailure(message: 'Unsupported sign in method.'));
       }
     } catch (error) {
+      debugPrint("Social sign in error: $error");
       emit(AuthFailure(message: 'Social sign in failed. Please try again.'));
     }
   }
@@ -112,7 +139,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     SignOutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _sessionStore.clear();
+    await Future.wait(
+      [
+        _firebaseAuth.signOut(),
+        _googleSignIn.signOut(),
+        _sessionStore.clear(),
+      ],
+      eagerError: false,
+    );
     emit(AuthInitial());
   }
 

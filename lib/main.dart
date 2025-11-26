@@ -8,6 +8,7 @@ import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/config/routes.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
+import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -20,11 +21,15 @@ void main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await injection.init();
-  runApp(const MyApp());
+  final existingSession = await injection.locator<AuthSessionStore>().read();
+  final initialUserId = existingSession?.userId ?? 'local-user';
+  runApp(MyApp(initialUserId: initialUserId));
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.initialUserId});
+
+  final String initialUserId;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -39,7 +44,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    const defaultUserId = 'local-user';
+    final defaultUserId = widget.initialUserId;
     final plannerRepository = injection.locator<PlannerRepository>();
 
     return MultiBlocProvider(

@@ -41,6 +41,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         );
 
     _animationController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _redirectIfAuthenticated(context.read<AuthBloc>().state);
+    });
   }
 
   @override
@@ -54,9 +58,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            context.go("/");
-          } else if (state is AuthFailure) {
+          _redirectIfAuthenticated(state);
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -106,6 +109,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  void _redirectIfAuthenticated(AuthState state) {
+    if (state is AuthSuccess) {
+      context.go("/");
+    }
   }
 
   Widget _buildHeader() {

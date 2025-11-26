@@ -2,25 +2,32 @@ import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
+import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
+import 'package:the_reminder_app/models/planner_models.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required PlannerRepository plannerRepository,
     required FirebaseUserSyncService userSyncService,
+    required AuthSessionStore sessionStore,
   }) : _plannerRepository = plannerRepository,
        _userSyncService = userSyncService,
+       _sessionStore = sessionStore,
        super(AuthInitial()) {
+    on<RestoreSessionRequested>(_handleRestoreSession);
     on<EmailSignInRequested>(_handleEmailSignIn);
     on<GoogleSignInRequested>(_handleSocialSignIn);
     on<AppleSignInRequested>(_handleSocialSignIn);
     on<SignOutRequested>(_handleSignOut);
+    add(RestoreSessionRequested());
   }
 
   final PlannerRepository _plannerRepository;
   final FirebaseUserSyncService _userSyncService;
+  final AuthSessionStore _sessionStore;
 
   Future<void> _handleEmailSignIn(
     EmailSignInRequested event,
@@ -42,6 +49,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         displayName: _displayNameFromEmail(normalizedEmail),
       );
       await _userSyncService.syncLogin(user: user, loginMethod: 'email');
+      await _sessionStore.save(
+        AuthSession(
+          userId: user.id,
+          email: user.email,
+          displayName: user.displayName,
+        ),
+      );
       emit(AuthSuccess(userId: user.id, email: user.email));
     } catch (error) {
       emit(AuthFailure(message: 'Unable to sign in. Please try again.'));
@@ -63,6 +77,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           displayName: 'Google User',
         );
         await _userSyncService.syncLogin(user: user, loginMethod: 'google');
+        await _sessionStore.save(
+          AuthSession(
+            userId: user.id,
+            email: user.email,
+            displayName: user.displayName,
+          ),
+        );
         emit(AuthSuccess(userId: user.id, email: user.email));
       } else if (event is AppleSignInRequested) {
         final user = await _plannerRepository.ensureUser(
@@ -71,6 +92,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           displayName: 'Apple User',
         );
         await _userSyncService.syncLogin(user: user, loginMethod: 'apple');
+        await _sessionStore.save(
+          AuthSession(
+            userId: user.id,
+            email: user.email,
+            displayName: user.displayName,
+          ),
+        );
         emit(AuthSuccess(userId: user.id, email: user.email));
       } else {
         emit(AuthFailure(message: 'Unsupported sign in method.'));
@@ -80,8 +108,32 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _handleSignOut(SignOutRequested event, Emitter<AuthState> emit) {
+  Future<void> _handleSignOut(
+    SignOutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    await _sessionStore.clear();
     emit(AuthInitial());
+  }
+
+  Future<void> _handleRestoreSession(
+    RestoreSessionRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      final session = await _sessionStore.read();
+      if (session == null) {
+        return;
+      }
+      final user = await _plannerRepository.ensureUser(
+        userId: session.userId,
+        email: session.email,
+        displayName: session.displayName,
+      );
+      emit(AuthSuccess(userId: user.id, email: user.email));
+    } catch (_) {
+      // Ignore restore failures to avoid blocking app launch.
+    }
   }
 
   String _normalizeEmail(String rawEmail) => rawEmail.trim().toLowerCase();

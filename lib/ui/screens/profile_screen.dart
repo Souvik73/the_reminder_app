@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
+import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
@@ -16,6 +17,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
     final subscriptionState = context.watch<SubscriptionCubit>().state;
     final hydrationState = context.watch<HydrationCubit>().state;
     final reminderState = context.watch<ReminderBloc>().state;
@@ -57,6 +59,7 @@ class ProfileScreen extends StatelessWidget {
               isPremium: isPremium,
               subscriptionState: subscriptionState,
               reminders: reminders.length,
+              userName: _friendlyFirstName(authState),
             ),
             const SizedBox(height: 24),
             Text(
@@ -123,6 +126,29 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  String _friendlyFirstName(AuthState state) {
+    if (state is AuthSuccess) {
+      final fromName = _firstName(state.displayName);
+      if (fromName != null) return fromName;
+      final fromEmail = _firstName(state.email);
+      if (fromEmail != null) return fromEmail;
+    }
+    return 'there';
+  }
+
+  String? _firstName(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    final parts = trimmed
+        .split(RegExp('[\\s._-]+'))
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return null;
+    final lower = parts.first.toLowerCase();
+    return '${lower[0].toUpperCase()}${lower.substring(1)}';
+  }
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
@@ -130,11 +156,13 @@ class _ProfileHeaderCard extends StatelessWidget {
     required this.isPremium,
     required this.subscriptionState,
     required this.reminders,
+    required this.userName,
   });
 
   final bool isPremium;
   final SubscriptionState subscriptionState;
   final int reminders;
+  final String userName;
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +191,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hey there!',
+                    'Hey $userName!',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

@@ -42,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     final normalizedEmail = _normalizeEmail(event.email);
+    final displayName = _displayNameFromEmail(normalizedEmail);
     if (normalizedEmail.isEmpty) {
       emit(AuthFailure(message: 'Please enter a valid email address.'));
       return;
@@ -54,17 +55,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final user = await _plannerRepository.ensureUser(
         userId: _buildUserIdFromEmail(normalizedEmail),
         email: normalizedEmail,
-        displayName: _displayNameFromEmail(normalizedEmail),
+        displayName: displayName,
       );
+      final resolvedDisplayName = user.displayName ?? displayName;
       await _userSyncService.syncLogin(user: user, loginMethod: 'email');
       await _sessionStore.save(
         AuthSession(
           userId: user.id,
           email: user.email,
-          displayName: user.displayName,
+          displayName: resolvedDisplayName,
+          photoUrl: null,
         ),
       );
-      emit(AuthSuccess(userId: user.id, email: user.email));
+      emit(
+        AuthSuccess(
+          userId: user.id,
+          email: user.email,
+          displayName: resolvedDisplayName,
+        ),
+      );
     } catch (error) {
       emit(AuthFailure(message: 'Unable to sign in. Please try again.'));
     }
@@ -96,35 +105,55 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             message: 'Unable to read Google account details',
           );
         }
+        final displayName =
+            firebaseUser.displayName ?? googleUser.displayName;
+        final photoUrl = firebaseUser.photoURL ?? googleUser.photoUrl;
         final user = await _plannerRepository.ensureUser(
           userId: firebaseUser.uid,
           email: firebaseUser.email!,
-          displayName: firebaseUser.displayName,
+          displayName: displayName,
         );
+        final resolvedDisplayName = user.displayName ?? displayName;
         await _userSyncService.syncLogin(user: user, loginMethod: 'google');
         await _sessionStore.save(
           AuthSession(
             userId: user.id,
             email: user.email,
-            displayName: user.displayName,
+            displayName: resolvedDisplayName,
+            photoUrl: photoUrl,
           ),
         );
-        emit(AuthSuccess(userId: user.id, email: user.email));
+        emit(
+          AuthSuccess(
+            userId: user.id,
+            email: user.email,
+            displayName: resolvedDisplayName,
+            photoUrl: photoUrl,
+          ),
+        );
       } else if (event is AppleSignInRequested) {
+        const displayName = 'Apple User';
         final user = await _plannerRepository.ensureUser(
           userId: 'apple-user',
           email: 'apple-user@example.com',
-          displayName: 'Apple User',
+          displayName: displayName,
         );
         await _userSyncService.syncLogin(user: user, loginMethod: 'apple');
         await _sessionStore.save(
           AuthSession(
             userId: user.id,
             email: user.email,
-            displayName: user.displayName,
+            displayName: user.displayName ?? displayName,
+            photoUrl: null,
           ),
         );
-        emit(AuthSuccess(userId: user.id, email: user.email));
+        emit(
+          AuthSuccess(
+            userId: user.id,
+            email: user.email,
+            displayName: user.displayName ?? displayName,
+          ),
+        );
       } else {
         emit(AuthFailure(message: 'Unsupported sign in method.'));
       }
@@ -163,7 +192,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: session.email,
         displayName: session.displayName,
       );
-      emit(AuthSuccess(userId: user.id, email: user.email));
+      emit(
+        AuthSuccess(
+          userId: user.id,
+          email: user.email,
+          displayName: user.displayName ?? session.displayName,
+          photoUrl: session.photoUrl,
+        ),
+      );
     } catch (_) {
       // Ignore restore failures to avoid blocking app launch.
     }

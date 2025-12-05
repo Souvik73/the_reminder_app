@@ -102,8 +102,40 @@ class _HomeScreenState extends State<HomeScreen> {
     return _fallbackUserId;
   }
 
+  String? _nonEmpty(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _displayNameFromAuth(AuthState state) {
+    if (state is! AuthSuccess) return null;
+    final named = _nonEmpty(state.displayName);
+    if (named != null) return named;
+    final email = _nonEmpty(state.email);
+    if (email == null || !email.contains('@')) return null;
+    final localPart = email.split('@').first;
+    if (localPart.isEmpty) return null;
+    return '${localPart[0].toUpperCase()}${localPart.substring(1)}';
+  }
+
+  String? _emailFromAuth(AuthState state) {
+    if (state is AuthSuccess) {
+      return _nonEmpty(state.email);
+    }
+    return null;
+  }
+
+  String? _photoFromAuth(AuthState state) {
+    if (state is AuthSuccess) {
+      return _nonEmpty(state.photoUrl);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
     final reminderState = context.watch<ReminderBloc>().state;
     final alarmState = context.watch<AlarmCubit>().state;
     final hydrationState = context.watch<HydrationCubit>().state;
@@ -135,6 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onDestinationSelected: _setIndex,
           isPremium: subscriptionState.isPremium,
           onSubscriptionTap: _showSubscriptionSheet,
+          displayName: _displayNameFromAuth(authState),
+          email: _emailFromAuth(authState),
+          photoUrl: _photoFromAuth(authState),
         ),
         body: IndexedStack(
           index: _currentIndex,
@@ -1198,17 +1233,35 @@ class _HomeDrawer extends StatelessWidget {
   final ValueChanged<int> onDestinationSelected;
   final bool isPremium;
   final VoidCallback onSubscriptionTap;
+  final String? displayName;
+  final String? email;
+  final String? photoUrl;
 
   const _HomeDrawer({
     required this.currentIndex,
     required this.onDestinationSelected,
     required this.isPremium,
     required this.onSubscriptionTap,
+    this.displayName,
+    this.email,
+    this.photoUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cleanedName =
+        displayName != null && displayName!.trim().isNotEmpty
+            ? displayName!.trim()
+            : 'Guest';
+    final cleanedEmail =
+        email != null && email!.trim().isNotEmpty ? email!.trim() : null;
+    final cleanedPhoto =
+        photoUrl != null && photoUrl!.trim().isNotEmpty ? photoUrl!.trim() : null;
+    final details = <String>[
+      cleanedEmail ?? 'Not signed in',
+      isPremium ? 'Premium member' : 'Free plan',
+    ].join(' • ');
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -1222,15 +1275,19 @@ class _HomeDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-              accountName: Text(isPremium ? 'Premium member' : 'Guest'),
-              accountEmail: const Text('Stay on top of your day'),
+              accountName: Text(cleanedName),
+              accountEmail: Text(details),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person_outline,
-                  size: 36,
-                  color: theme.colorScheme.primary,
-                ),
+                backgroundImage:
+                    cleanedPhoto != null ? NetworkImage(cleanedPhoto) : null,
+                child: cleanedPhoto != null
+                    ? null
+                    : Icon(
+                        Icons.person_outline,
+                        size: 36,
+                        color: theme.colorScheme.primary,
+                      ),
               ),
             ),
             _DrawerTile(

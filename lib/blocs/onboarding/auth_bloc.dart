@@ -8,7 +8,6 @@ import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
 import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
-import 'package:the_reminder_app/models/planner_models.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {

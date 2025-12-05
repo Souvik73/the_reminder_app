@@ -2,17 +2,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/alarm/alarm_state.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
+import 'package:the_reminder_app/services/alarm_service.dart';
 
 class AlarmCubit extends Cubit<AlarmState> {
   AlarmCubit({
     required PlannerRepository repository,
+    required AlarmService alarmService,
     required String initialUserId,
   }) : _repository = repository,
+       _alarmService = alarmService,
        super(AlarmState.initial(userId: initialUserId)) {
     _loadForUser(initialUserId);
   }
 
   final PlannerRepository _repository;
+  final AlarmService _alarmService;
 
   Future<void> setActiveUser(String userId) async {
     if (userId == state.activeUserId && !state.isLoading) {
@@ -37,18 +41,21 @@ class AlarmCubit extends Cubit<AlarmState> {
     });
     emit(state.copyWith(alarms: updated));
     await _repository.saveAlarm(userAligned);
+    await _alarmService.scheduleAlarm(userAligned);
   }
 
   Future<void> deleteAlarm(String alarmId) async {
     final updated = state.alarms.where((alarm) => alarm.id != alarmId).toList();
     emit(state.copyWith(alarms: updated));
     await _repository.deleteAlarm(state.activeUserId, alarmId);
+    await _alarmService.cancelAlarm(alarmId);
   }
 
   Future<void> _loadForUser(String userId) async {
     emit(state.copyWith(activeUserId: userId, isLoading: true));
     final alarms = await _repository.loadAlarms(userId);
     emit(state.copyWith(alarms: alarms, isLoading: false));
+    await _alarmService.syncAlarms(alarms);
   }
 
   AlarmEntry _ensureAlarmUser(AlarmEntry alarm) {

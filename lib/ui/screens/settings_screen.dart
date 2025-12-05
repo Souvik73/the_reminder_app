@@ -31,7 +31,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final subscriptionState = context.watch<SubscriptionCubit>().state;
-
     return BlocListener<HydrationCubit, HydrationState>(
       listenWhen: (previous, current) =>
           previous.dailyGoal != current.dailyGoal,

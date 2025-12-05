@@ -76,6 +76,7 @@ dependencies:
   # - Splash Screen
   flutter_native_splash: ^2.4.6
   flutter_screenutil: ^5.9.3
+  alarm: ^5.1.5
 
 dev_dependencies:
   flutter_test:

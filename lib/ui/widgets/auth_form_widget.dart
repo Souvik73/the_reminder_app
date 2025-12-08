@@ -130,7 +130,7 @@ class _AuthFormWidgetState extends State<AuthFormWidget> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Login Button
           SizedBox(

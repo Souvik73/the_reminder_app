@@ -8,6 +8,7 @@ import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
+import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -61,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
               reminders: reminders.length,
               userName: _friendlyFirstName(authState),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               'Productivity overview',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -89,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               'Recent hydration',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -104,9 +105,13 @@ class ProfileScreen extends StatelessWidget {
                 logs: recentHydration,
                 localizations: localizations,
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _QuickActionsCard(isPremium: isPremium),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            if (!isPremium) ...[
+              AdBanner(onUpgrade: () => _showUpgradePrompt(context)),
+              const SizedBox(height: 16),
+            ],
             Card(
               color: AppColors.cardBackground,
               shadowColor: AppColors.cardShadow,
@@ -148,6 +153,15 @@ class ProfileScreen extends StatelessWidget {
     if (parts.isEmpty) return null;
     final lower = parts.first.toLowerCase();
     return '${lower[0].toUpperCase()}${lower.substring(1)}';
+  }
+
+  void _showUpgradePrompt(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Upgrade to Premium to remove ads.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 }
 

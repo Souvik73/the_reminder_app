@@ -126,7 +126,7 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
                   color: const Color(0xFF111827),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

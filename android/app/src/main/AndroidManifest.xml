@@ -13,6 +13,10 @@
         android:label="the_reminder_app"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- AdMob app ID for Google Mobile Ads -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-1536607795745971~4524914381" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

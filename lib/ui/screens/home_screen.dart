@@ -23,6 +23,7 @@ import 'package:the_reminder_app/ui/screens/profile_screen.dart';
 import 'package:the_reminder_app/ui/screens/settings_screen.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
+import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -260,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTextSubmitted: _createReminderFromText,
               onAlarmPressed: () => _openAlarmComposer(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             if (reminderState.activeReminders.isEmpty)
               _buildEmptyRemindersState(theme)
             else ...[
@@ -295,14 +296,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   onComplete: _completeReminder,
                 ),
             ],
-            const SizedBox(height: 24),
+            if (!subscriptionState.isPremium) ...[
+              const SizedBox(height: 16),
+              AdBanner(onUpgrade: _showSubscriptionSheet),
+            ],
+            const SizedBox(height: 16),
             _AlarmCard(
               alarmState: alarmState,
               onCreate: _openAlarmComposer,
               onEdit: _openAlarmComposer,
               onDelete: _deleteAlarm,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _HydrationGoalCard(
               hydrationState: hydrationState,
               onQuickLog: _logHydration,
@@ -321,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             if (!subscriptionState.isPremium) ...[
               const SizedBox(height: 16),
-              _AdBanner(onUpgrade: _showSubscriptionSheet),
+              AdBanner(onUpgrade: _showSubscriptionSheet),
             ],
           ],
         ),
@@ -728,7 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onChanged: (value) => customRecurrence = value,
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -1175,7 +1180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -2043,7 +2048,7 @@ class _HydrationSuccessCard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -2250,59 +2255,6 @@ class _PomodoroCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AdBanner extends StatelessWidget {
-  final VoidCallback onUpgrade;
-
-  const _AdBanner({required this.onUpgrade});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: AppGradients.accent,
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 24,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.campaign_outlined, size: 32, color: Colors.white),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Ad — Upgrade to Premium to enjoy an ad-free experience.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: onUpgrade,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.accent,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text('Upgrade'),
-          ),
-        ],
       ),
     );
   }

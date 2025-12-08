@@ -5,6 +5,7 @@ import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
+import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -73,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _adsPersonalized,
                 onChanged: (value) => setState(() => _adsPersonalized = value),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Text(
                 'Hydration goal',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -122,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Text(
                 'Premium',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -131,7 +132,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
               _premiumCard(subscriptionState),
-              const SizedBox(height: 24),
+              if (!subscriptionState.isPremium) ...[
+                const SizedBox(height: 16),
+                AdBanner(onUpgrade: _showUpgradeToast),
+              ],
+              const SizedBox(height: 16),
               Text(
                 'Support',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -196,6 +201,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: Text(subtitle),
         activeColor: AppColors.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+      ),
+    );
+  }
+
+  void _showUpgradeToast() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Upgrade to Premium to remove ads.'),
+        duration: Duration(seconds: 3),
       ),
     );
   }

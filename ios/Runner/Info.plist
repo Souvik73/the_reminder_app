@@ -57,6 +57,9 @@
 			<string>fetch</string>
 			<string>audio</string>
 		</array>
+		<!-- AdMob app ID -->
+		<key>GADApplicationIdentifier</key>
+		<string>ca-app-pub-1536607795745971~4524914381</string>
 		<key>BGTaskSchedulerPermittedIdentifiers</key>
 		<array>
 			<string>com.gdelataillade.fetch</string>

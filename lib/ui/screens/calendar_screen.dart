@@ -8,6 +8,7 @@ import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key, this.onOpenMenu});
@@ -107,7 +108,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ],
                 if (!subscriptionState.isPremium) ...[
                   const SizedBox(height: 16),
-                  AdBanner(onUpgrade: () => _showUpgradeToast(context)),
+                  AdBanner(onUpgrade: () => SubscriptionSheet.show(context)),
                 ],
               ],
             ),
@@ -337,14 +338,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _showUpgradeToast(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Upgrade to remove ads and unlock Premium features.'),
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
 }
 
 class _EmptyStateCard extends StatelessWidget {

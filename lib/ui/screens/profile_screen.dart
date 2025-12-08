@@ -10,6 +10,7 @@ import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, this.onOpenMenu});
@@ -156,12 +157,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showUpgradePrompt(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Upgrade to Premium to remove ads.'),
-        duration: Duration(seconds: 3),
-      ),
-    );
+    SubscriptionSheet.show(context);
   }
 }
 

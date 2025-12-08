@@ -25,6 +25,7 @@ import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1144,85 +1145,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSubscriptionSheet() {
-    final rootContext = context;
-    final subscriptionState = rootContext.read<SubscriptionCubit>().state;
-    showModalBottomSheet<void>(
-      context: rootContext,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.workspace_premium_outlined,
-                size: 48,
-                color: Theme.of(rootContext).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                subscriptionState.isPremium
-                    ? 'Manage your Premium plan'
-                    : 'Upgrade to Premium',
-                style: Theme.of(
-                  rootContext,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subscriptionState.isPremium
-                    ? 'Adjust your subscription, manage billing, or contact support.'
-                    : 'Unlock advanced Pomodoro analytics and an ad-free experience.',
-                textAlign: TextAlign.center,
-                style: Theme.of(rootContext).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    rootContext,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final cubit = rootContext.read<SubscriptionCubit>();
-                    if (subscriptionState.isPremium) {
-                      ScaffoldMessenger.of(rootContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('Subscription portal coming soon.'),
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    } else {
-                      cubit.upgrade();
-                      ScaffoldMessenger.of(rootContext).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Premium activated. Enjoy the upgrade!',
-                          ),
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                    Navigator.of(sheetContext).pop();
-                  },
-                  child: Text(
-                    subscriptionState.isPremium
-                        ? 'Manage subscription'
-                        : 'Upgrade now',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Navigator.of(sheetContext).pop(),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    SubscriptionSheet.show(context);
   }
 }
 

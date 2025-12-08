@@ -7,6 +7,7 @@ import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, this.onOpenMenu});
@@ -134,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _premiumCard(subscriptionState),
               if (!subscriptionState.isPremium) ...[
                 const SizedBox(height: 16),
-                AdBanner(onUpgrade: _showUpgradeToast),
+                AdBanner(onUpgrade: _openSubscriptionSheet),
               ],
               const SizedBox(height: 16),
               Text(
@@ -205,16 +206,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showUpgradeToast() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Upgrade to Premium to remove ads.'),
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
   Widget _premiumCard(SubscriptionState subscriptionState) {
+    final helperText = !subscriptionState.isSupportedPlatform
+        ? 'In-app purchases are not supported on this platform.'
+        : !subscriptionState.hasApiKey
+            ? 'Add your RevenueCat public SDK key in lib/config/subscription_keys.dart.'
+            : null;
+    final isBusy =
+        subscriptionState.isProcessing || subscriptionState.isLoading;
+
     return Card(
       color: AppColors.cardBackground,
       shadowColor: AppColors.cardShadow,
@@ -268,23 +268,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            if (helperText != null) ...[
+              Text(
+                helperText,
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (subscriptionState.errorMessage != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        subscriptionState.errorMessage!,
+                        style: TextStyle(
+                          color: Colors.red[800],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: subscriptionState.isPremium
-                        ? null
-                        : () {
-                            context.read<SubscriptionCubit>().upgrade();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Premium activated. Enjoy the upgrade!',
-                                ),
-                                duration: Duration(seconds: 3),
-                              ),
-                            );
-                          },
+                    onPressed: isBusy ? null : _openSubscriptionSheet,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -293,32 +320,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Purchase Premium'),
+                    child: isBusy
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            subscriptionState.isPremium
+                                ? 'Manage subscription'
+                                : 'Purchase Premium',
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: subscriptionState.isPremium
-                        ? () {
-                            context.read<SubscriptionCubit>().downgrade();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Premium disabled.'),
-                                duration: Duration(seconds: 3),
-                              ),
-                            );
-                          }
-                        : () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Attempting to restore purchases...',
-                                ),
-                                duration: Duration(seconds: 3),
-                              ),
-                            );
-                          },
+                    onPressed: isBusy
+                        ? null
+                        : () => context.read<SubscriptionCubit>().restore(),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
@@ -327,11 +347,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Text(
-                      subscriptionState.isPremium
-                          ? 'Downgrade'
-                          : 'Restore purchases',
-                    ),
+                    child: isBusy
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Restore purchases'),
                   ),
                 ),
               ],
@@ -340,5 +362,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _openSubscriptionSheet() {
+    SubscriptionSheet.show(context);
   }
 }

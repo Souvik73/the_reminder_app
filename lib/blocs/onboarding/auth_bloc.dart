@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -8,6 +9,7 @@ import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
 import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
+import 'package:the_reminder_app/models/planner_models.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -58,7 +60,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         displayName: displayName,
       );
       final resolvedDisplayName = user.displayName ?? displayName;
-      await _userSyncService.syncLogin(user: user, loginMethod: 'email');
+      await _syncLoginWithFallback(user: user, loginMethod: 'email');
       await _sessionStore.save(
         AuthSession(
           userId: user.id,
@@ -114,7 +116,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           displayName: displayName,
         );
         final resolvedDisplayName = user.displayName ?? displayName;
-        await _userSyncService.syncLogin(user: user, loginMethod: 'google');
+        await _syncLoginWithFallback(user: user, loginMethod: 'google');
         await _sessionStore.save(
           AuthSession(
             userId: user.id,
@@ -138,7 +140,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: 'apple-user@example.com',
           displayName: displayName,
         );
-        await _userSyncService.syncLogin(user: user, loginMethod: 'apple');
+        await _syncLoginWithFallback(user: user, loginMethod: 'apple');
         await _sessionStore.save(
           AuthSession(
             userId: user.id,
@@ -211,6 +213,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final safeEncoded =
         base64Url.encode(utf8.encode(normalizedEmail)).replaceAll('=', '');
     return 'email-$safeEncoded';
+  }
+
+  Future<void> _syncLoginWithFallback({
+    required AppUser user,
+    required String loginMethod,
+  }) async {
+    try {
+      await _userSyncService.syncLogin(user: user, loginMethod: loginMethod);
+    } on FirebaseException catch (error) {
+      debugPrint(
+        'Cloud sync skipped for $loginMethod login (code: ${error.code}).',
+      );
+    } catch (error) {
+      debugPrint('Cloud sync skipped for $loginMethod login: $error');
+    }
   }
 
   String? _displayNameFromEmail(String normalizedEmail) {

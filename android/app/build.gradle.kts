@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.the_reminder_app"
+    namespace = "com.souvik.the_reminder_app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -24,8 +24,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.the_reminder_app"
+        applicationId = "com.souvik.the_reminder_app"
         minSdk = flutter.minSdkVersion // ensure >= 21 (override if flutter.minSdkVersion < 21)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

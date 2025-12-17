@@ -10,12 +10,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
 import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:the_reminder_app/services/alarm_service.dart';
 import 'package:the_reminder_app/services/notification_service.dart';
-import 'package:the_reminder_app/services/purchase_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -71,11 +69,6 @@ class _MyAppState extends State<MyApp> {
             repository: plannerRepository,
             initialUserId: defaultUserId,
           ),
-        ),
-        BlocProvider(
-          create: (context) => SubscriptionCubit(
-            purchaseService: injection.locator<PurchaseService>(),
-          )..bootstrap(),
         ),
         BlocProvider(create: (context) => PomodoroCubit()),
       ],

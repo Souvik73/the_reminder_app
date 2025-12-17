@@ -7,17 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:266329530255:android:8c4db3289d854e8a7ef5fa",
+        "mobilesdk_app_id": "1:266329530255:android:5909a51f5432ff177ef5fa",
         "android_client_info": {
-          "package_name": "com.example.the_reminder_app"
+          "package_name": "com.souvik.the_reminder_app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "266329530255-aa9jqr6otio0u9gjp8e14v9p94bg836r.apps.googleusercontent.com",
+          "client_id": "266329530255-b3ps6qfmmr922hdknef17fpu3bihp82l.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.the_reminder_app",
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "d12d2b52c521d6f14ca8789770aa709952aef371"
+          }
+        },
+        {
+          "client_id": "266329530255-lf32er70rh356g2vp23gsnp9p809g69i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
             "certificate_hash": "43e317ffc330ebfac550ae0003b684f82e9801e3"
           }
         },

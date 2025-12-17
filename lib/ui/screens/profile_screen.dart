@@ -3,14 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
-import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, this.onOpenMenu});
@@ -20,7 +17,6 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
-    final subscriptionState = context.watch<SubscriptionCubit>().state;
     final hydrationState = context.watch<HydrationCubit>().state;
     final reminderState = context.watch<ReminderBloc>().state;
     final reminders = reminderState.reminders;
@@ -37,14 +33,10 @@ class ProfileScreen extends StatelessWidget {
     final recentHydration = hydrationHistory.toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    final isPremium = subscriptionState.isPremium;
-
     return GradientPageShell(
       icon: Icons.person_outline,
       title: 'Profile',
-      subtitle: isPremium
-          ? 'Premium subscriber insights'
-          : 'Track your productivity and hydration',
+      subtitle: 'Track your productivity and hydration',
       leading: onOpenMenu != null
           ? GradientHeaderButton(
               icon: Icons.menu_rounded,
@@ -58,8 +50,6 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
           children: [
             _ProfileHeaderCard(
-              isPremium: isPremium,
-              subscriptionState: subscriptionState,
               reminders: reminders.length,
               userName: _friendlyFirstName(authState),
             ),
@@ -107,12 +97,10 @@ class ProfileScreen extends StatelessWidget {
                 localizations: localizations,
               ),
             const SizedBox(height: 16),
-            _QuickActionsCard(isPremium: isPremium),
+            const _QuickActionsCard(),
             const SizedBox(height: 16),
-            if (!isPremium) ...[
-              AdBanner(onUpgrade: () => _showUpgradePrompt(context)),
-              const SizedBox(height: 16),
-            ],
+            const AdBanner(),
+            const SizedBox(height: 16),
             Card(
               color: AppColors.cardBackground,
               shadowColor: AppColors.cardShadow,
@@ -155,22 +143,14 @@ class ProfileScreen extends StatelessWidget {
     final lower = parts.first.toLowerCase();
     return '${lower[0].toUpperCase()}${lower.substring(1)}';
   }
-
-  void _showUpgradePrompt(BuildContext context) {
-    SubscriptionSheet.show(context);
-  }
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
   const _ProfileHeaderCard({
-    required this.isPremium,
-    required this.subscriptionState,
     required this.reminders,
     required this.userName,
   });
 
-  final bool isPremium;
-  final SubscriptionState subscriptionState;
   final int reminders;
   final String userName;
 
@@ -208,7 +188,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isPremium ? 'Premium subscriber' : 'Free plan user',
+                    'Stay organized and hydrated every day.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -223,21 +203,10 @@ class _ProfileHeaderCard extends StatelessWidget {
                         label: '$reminders reminders',
                         color: AppColors.primary,
                       ),
-                      if (isPremium)
-                        _InfoPill(
-                          icon: Icons.workspace_premium,
-                          label: 'Premium active',
-                          color: AppColors.secondary,
-                        ),
                     ],
                   ),
                 ],
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.manage_accounts_outlined),
-              onPressed: () =>
-                  _showSubscriptionSheet(context, subscriptionState),
             ),
           ],
         ),
@@ -490,9 +459,7 @@ class _HydrationHistoryList extends StatelessWidget {
 }
 
 class _QuickActionsCard extends StatelessWidget {
-  const _QuickActionsCard({required this.isPremium});
-
-  final bool isPremium;
+  const _QuickActionsCard();
 
   @override
   Widget build(BuildContext context) {
@@ -578,43 +545,4 @@ class _QuickChip extends StatelessWidget {
       ),
     );
   }
-}
-
-void _showSubscriptionSheet(
-  BuildContext context,
-  SubscriptionState subscriptionState,
-) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              subscriptionState.isPremium
-                  ? 'Manage your premium plan'
-                  : 'Upgrade to Premium',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Enjoy location-based reminders, focus tools, and an ad-free experience.',
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Got it'),
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
 }

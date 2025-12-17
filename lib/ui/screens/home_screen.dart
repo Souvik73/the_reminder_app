@@ -12,8 +12,6 @@ import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_event.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_state.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/services/notification_service.dart';
@@ -25,7 +23,6 @@ import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
-import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -141,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final reminderState = context.watch<ReminderBloc>().state;
     final alarmState = context.watch<AlarmCubit>().state;
     final hydrationState = context.watch<HydrationCubit>().state;
-    final subscriptionState = context.watch<SubscriptionCubit>().state;
     final pomodoroState = context.watch<PomodoroCubit>().state;
 
     return MultiBlocListener(
@@ -167,8 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
         drawer: _HomeDrawer(
           currentIndex: _currentIndex,
           onDestinationSelected: _setIndex,
-          isPremium: subscriptionState.isPremium,
-          onSubscriptionTap: _showSubscriptionSheet,
           displayName: _displayNameFromAuth(authState),
           email: _emailFromAuth(authState),
           photoUrl: _photoFromAuth(authState),
@@ -180,7 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
               reminderState,
               alarmState,
               hydrationState,
-              subscriptionState,
               pomodoroState,
             ),
             CalendarScreen(onOpenMenu: _openDrawer),
@@ -233,7 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ReminderState reminderState,
     AlarmState alarmState,
     HydrationState hydrationState,
-    SubscriptionState subscriptionState,
     PomodoroState pomodoroState,
   ) {
     final grouped = reminderState.remindersByPriority;
@@ -297,10 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   onComplete: _completeReminder,
                 ),
             ],
-            if (!subscriptionState.isPremium) ...[
-              const SizedBox(height: 16),
-              AdBanner(onUpgrade: _showSubscriptionSheet),
-            ],
+            const SizedBox(height: 16),
+            const AdBanner(),
             const SizedBox(height: 16),
             _AlarmCard(
               alarmState: alarmState,
@@ -325,10 +315,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onStartSession: _startPomodoroSession,
             ),
             const SizedBox(height: 16),
-            if (!subscriptionState.isPremium) ...[
-              const SizedBox(height: 16),
-              AdBanner(onUpgrade: _showSubscriptionSheet),
-            ],
+            const SizedBox(height: 16),
+            const AdBanner(),
           ],
         ),
       );
@@ -1143,10 +1131,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
-  void _showSubscriptionSheet() {
-    SubscriptionSheet.show(context);
-  }
 }
 
 class _PomodoroConfig {
@@ -1159,8 +1143,6 @@ class _PomodoroConfig {
 class _HomeDrawer extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
-  final bool isPremium;
-  final VoidCallback onSubscriptionTap;
   final String? displayName;
   final String? email;
   final String? photoUrl;
@@ -1168,8 +1150,6 @@ class _HomeDrawer extends StatelessWidget {
   const _HomeDrawer({
     required this.currentIndex,
     required this.onDestinationSelected,
-    required this.isPremium,
-    required this.onSubscriptionTap,
     this.displayName,
     this.email,
     this.photoUrl,
@@ -1186,10 +1166,7 @@ class _HomeDrawer extends StatelessWidget {
         email != null && email!.trim().isNotEmpty ? email!.trim() : null;
     final cleanedPhoto =
         photoUrl != null && photoUrl!.trim().isNotEmpty ? photoUrl!.trim() : null;
-    final details = <String>[
-      cleanedEmail ?? 'Not signed in',
-      isPremium ? 'Premium member' : 'Free plan',
-    ].join(' • ');
+    final details = cleanedEmail ?? 'Not signed in';
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -1241,12 +1218,6 @@ class _HomeDrawer extends StatelessWidget {
               label: 'Profile',
               selected: currentIndex == 3,
               onTap: () => onDestinationSelected(3),
-            ),
-            const Divider(),
-            _DrawerTile(
-              icon: Icons.workspace_premium_outlined,
-              label: isPremium ? 'Manage subscription' : 'Upgrade to Premium',
-              onTap: onSubscriptionTap,
             ),
             _DrawerTile(
               icon: Icons.help_outline,

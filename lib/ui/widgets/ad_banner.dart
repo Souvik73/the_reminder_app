@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:the_reminder_app/injector.dart' as injection;
 import 'package:the_reminder_app/services/ad_service.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_state.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 
 class AdBanner extends StatefulWidget {
-  const AdBanner({super.key, required this.onUpgrade});
-
-  final VoidCallback onUpgrade;
+  const AdBanner({super.key});
 
   @override
   State<AdBanner> createState() => _AdBannerState();
@@ -25,10 +20,7 @@ class _AdBannerState extends State<AdBanner> {
   @override
   void initState() {
     super.initState();
-    final isPremium = context.read<SubscriptionCubit>().state.isPremium;
-    if (!isPremium) {
-      _loadBanner();
-    }
+    _loadBanner();
   }
 
   void _loadBanner() {
@@ -76,27 +68,10 @@ class _AdBannerState extends State<AdBanner> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPremium =
-        context.select<SubscriptionCubit, bool>((cubit) => cubit.state.isPremium);
-    if (isPremium) {
-      _disposeBanner();
-      return const SizedBox.shrink();
+    if (_unsupportedPlatform) {
+      return _unsupportedInfo(theme);
     }
-
-    return BlocListener<SubscriptionCubit, SubscriptionState>(
-      listenWhen: (previous, current) =>
-          previous.isPremium != current.isPremium,
-      listener: (context, state) {
-        if (state.isPremium) {
-          _disposeBanner();
-        } else if (_bannerAd == null && !_isLoaded) {
-          _loadBanner();
-        }
-      },
-      child: _unsupportedPlatform
-          ? _upgradeFallback(theme)
-          : _bannerContent(theme),
-    );
+    return _bannerContent(theme);
   }
 
   Widget _bannerContent(ThemeData theme) {
@@ -138,9 +113,10 @@ class _AdBannerState extends State<AdBanner> {
                     ),
               ),
             ),
-            TextButton(
-              onPressed: widget.onUpgrade,
-              child: const Text('Upgrade'),
+            const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ],
         ),
@@ -148,51 +124,32 @@ class _AdBannerState extends State<AdBanner> {
     );
   }
 
-  void _disposeBanner() {
-    _bannerAd?.dispose();
-    _bannerAd = null;
-    _isLoaded = false;
-  }
-
-  Widget _upgradeFallback(ThemeData theme) {
+  Widget _unsupportedInfo(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: AppGradients.accent,
+        gradient: AppGradients.subtle,
         boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 24,
-            offset: Offset(0, 12),
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.campaign_outlined, size: 32, color: Colors.white),
-          const SizedBox(width: 16),
+          const Icon(Icons.block, color: AppColors.primary),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Upgrade to Premium to enjoy an ad-free experience.',
+              'Ads are not available on this platform.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: widget.onUpgrade,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.accent,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text('Upgrade'),
           ),
         ],
       ),

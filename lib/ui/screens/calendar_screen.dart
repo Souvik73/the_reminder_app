@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/alarm/alarm_cubit.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
-import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key, this.onOpenMenu});
@@ -29,7 +27,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final localizations = MaterialLocalizations.of(context);
     final reminderState = context.watch<ReminderBloc>().state;
     final alarmState = context.watch<AlarmCubit>().state;
-    final subscriptionState = context.watch<SubscriptionCubit>().state;
 
     final reminders =
         reminderState.reminders
@@ -106,10 +103,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   const SizedBox(height: 16),
                   _buildAlarmSection(alarms, theme, localizations),
                 ],
-                if (!subscriptionState.isPremium) ...[
-                  const SizedBox(height: 16),
-                  AdBanner(onUpgrade: () => SubscriptionSheet.show(context)),
-                ],
+                const SizedBox(height: 16),
+                const AdBanner(),
               ],
             ),
           ),

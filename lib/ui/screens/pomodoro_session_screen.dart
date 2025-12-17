@@ -1,12 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
-import 'package:the_reminder_app/blocs/subscription/subscription_cubit.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
-import 'package:the_reminder_app/ui/widgets/subscription_sheet.dart';
 
 class PomodoroSessionScreen extends StatefulWidget {
   final Duration workDuration;
@@ -72,10 +69,6 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  void _openSubscriptionSheet() {
-    SubscriptionSheet.show(context);
-  }
-
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -100,7 +93,6 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final subscriptionState = context.watch<SubscriptionCubit>().state;
     final phaseLabel = _isWorkPhase ? 'Focus' : 'Rest';
     final subtitle = _isWorkPhase ? 'Deep focus mode' : 'Reset and breathe';
     final workLabel = '${widget.workDuration.inMinutes}m Focus';
@@ -327,10 +319,8 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (!subscriptionState.isPremium) ...[
-                                    SizedBox(height: isCompact ? 36 : 48),
-                                    AdBanner(onUpgrade: _openSubscriptionSheet),
-                                  ],
+                                  SizedBox(height: isCompact ? 36 : 48),
+                                  const AdBanner(),
                                 ],
                               ),
                             ),

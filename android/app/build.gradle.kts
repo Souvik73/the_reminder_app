@@ -24,6 +24,7 @@ android {
     }
 
     defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.souvik.the_reminder_app"
         minSdk = flutter.minSdkVersion // ensure >= 21 (override if flutter.minSdkVersion < 21)
         targetSdk = flutter.targetSdkVersion

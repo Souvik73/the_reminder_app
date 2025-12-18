@@ -12,10 +12,10 @@ class AdService {
   /// when you are ready to publish.
   String? get bannerAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111';
+      return 'ca-app-pub-1536607795745971/6651574141';
     }
     if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716';
+      return 'ca-app-pub-1536607795745971/6651574141';
     }
     return null;
   }

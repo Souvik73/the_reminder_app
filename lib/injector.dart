@@ -9,6 +9,7 @@ import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/services/alarm_service.dart';
 import 'package:the_reminder_app/services/ad_service.dart';
 import 'package:the_reminder_app/services/notification_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 final locator = GetIt.instance;
 
@@ -45,6 +46,10 @@ Future<void> init() async {
       plannerRepository: locator(),
       userSyncService: locator(),
       sessionStore: locator(),
+      googleSignIn: GoogleSignIn(
+        serverClientId:
+            '266329530255-26pkfoit5ueete442nilf4unv29u7vsc.apps.googleusercontent.com',
+      ),
     ),
   );
 }

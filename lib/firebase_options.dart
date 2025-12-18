@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDxsm8N2csSEiMLgMaeCmA8ay6CS1BRvWs',
-    appId: '1:266329530255:android:8c4db3289d854e8a7ef5fa',
+    appId: '1:266329530255:android:5909a51f5432ff177ef5fa',
     messagingSenderId: '266329530255',
     projectId: 'the-reminder-app-7e0e4',
     storageBucket: 'the-reminder-app-7e0e4.firebasestorage.app',

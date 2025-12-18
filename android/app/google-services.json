@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "266329530255-a8t01mufmjm1b38fno5nddl6mmh868me.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "dc2443ff5c1ace50d4d542fb4d2b130ecda0c57c"
+          }
+        },
+        {
           "client_id": "266329530255-b3ps6qfmmr922hdknef17fpu3bihp82l.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -50,7 +58,7 @@
               "client_id": "266329530255-vj33qrikeh35648qo8a9mkrc9kk7uql4.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.souvik.theReminderApp"
+                "bundle_id": "com.example.theReminderApp"
               }
             }
           ]

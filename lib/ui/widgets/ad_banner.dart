@@ -12,7 +12,8 @@ class AdBanner extends StatefulWidget {
   State<AdBanner> createState() => _AdBannerState();
 }
 
-class _AdBannerState extends State<AdBanner> {
+class _AdBannerState extends State<AdBanner>
+    with AutomaticKeepAliveClientMixin {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
   bool _unsupportedPlatform = false;
@@ -67,12 +68,16 @@ class _AdBannerState extends State<AdBanner> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     if (_unsupportedPlatform) {
       return _unsupportedInfo(theme);
     }
     return _bannerContent(theme);
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   Widget _bannerContent(ThemeData theme) {
     if (_isLoaded && _bannerAd != null) {

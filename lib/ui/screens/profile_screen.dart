@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
+import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
@@ -33,89 +35,98 @@ class ProfileScreen extends StatelessWidget {
     final recentHydration = hydrationHistory.toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    return GradientPageShell(
-      icon: Icons.person_outline,
-      title: 'Profile',
-      subtitle: 'Track your productivity and hydration',
-      leading: onOpenMenu != null
-          ? GradientHeaderButton(
-              icon: Icons.menu_rounded,
-              onPressed: onOpenMenu!,
-            )
-          : null,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(color: AppColors.pageBackground),
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
-          children: [
-            _ProfileHeaderCard(
-              reminders: reminders.length,
-              userName: _friendlyFirstName(authState),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Productivity overview',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          previous is! AuthInitial && current is AuthInitial,
+      listener: (context, state) {
+        context.go('/login_page');
+      },
+      child: GradientPageShell(
+        icon: Icons.person_outline,
+        title: 'Profile',
+        subtitle: 'Track your productivity and hydration',
+        leading: onOpenMenu != null
+            ? GradientHeaderButton(
+                icon: Icons.menu_rounded,
+                onPressed: onOpenMenu!,
+              )
+            : null,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: AppColors.pageBackground),
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
+            children: [
+              _ProfileHeaderCard(
+                reminders: reminders.length,
+                userName: _friendlyFirstName(authState),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricCard(
-                    icon: Icons.notifications_active_outlined,
-                    value: '${reminders.length}',
-                    label: 'Upcoming reminders',
-                    iconColor: AppColors.primary,
-                  ),
+              const SizedBox(height: 16),
+              Text(
+                'Productivity overview',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _HydrationMetricCard(
-                    progress: progress,
-                    hydrationGoal: hydrationGoal,
-                    hydrationLogged: hydrationLogged,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricCard(
+                      icon: Icons.notifications_active_outlined,
+                      value: '${reminders.length}',
+                      label: 'Upcoming reminders',
+                      iconColor: AppColors.primary,
+                    ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _HydrationMetricCard(
+                      progress: progress,
+                      hydrationGoal: hydrationGoal,
+                      hydrationLogged: hydrationLogged,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Recent hydration',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Recent hydration',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
               ),
-            ),
-            const SizedBox(height: 12),
-            if (recentHydration.isEmpty)
-              const _EmptyHydrationState()
-            else
-              _HydrationHistoryList(
-                logs: recentHydration,
-                localizations: localizations,
+              const SizedBox(height: 12),
+              if (recentHydration.isEmpty)
+                const _EmptyHydrationState()
+              else
+                _HydrationHistoryList(
+                  logs: recentHydration,
+                  localizations: localizations,
+                ),
+              const SizedBox(height: 16),
+              const _QuickActionsCard(),
+              const SizedBox(height: 16),
+              const AdBanner(),
+              const SizedBox(height: 16),
+              Card(
+                color: AppColors.cardBackground,
+                shadowColor: AppColors.cardShadow,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.logout_rounded),
+                  title: const Text('Sign out'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.read<AuthBloc>().add(SignOutRequested());
+                  },
+                ),
               ),
-            const SizedBox(height: 16),
-            const _QuickActionsCard(),
-            const SizedBox(height: 16),
-            const AdBanner(),
-            const SizedBox(height: 16),
-            Card(
-              color: AppColors.cardBackground,
-              shadowColor: AppColors.cardShadow,
-              surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.logout_rounded),
-                title: const Text('Sign out'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -146,10 +157,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
-  const _ProfileHeaderCard({
-    required this.reminders,
-    required this.userName,
-  });
+  const _ProfileHeaderCard({required this.reminders, required this.userName});
 
   final int reminders;
   final String userName;

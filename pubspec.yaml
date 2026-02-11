@@ -60,10 +60,6 @@ dependencies:
   # — CALENDAR & DATE PICKERS —
   table_calendar:    ^3.2.0    # calendar UI for picking dates
 
-  # — GEOLOCATION & GEOFENCING —
-  geolocator:        ^14.0.2   # get device location
-  geofencing_api:    ^2.0.0    # monitor enter/exit regions
-
   # — UTILITIES —
   uuid:               ^4.5.1   # generate unique IDs
   intl:               ^0.20.2  # formatting dates/times

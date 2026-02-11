@@ -54,8 +54,8 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
     if (value.length < 8) {
       return 'Password must be at least 8 characters';
     }
-    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
-      return 'Password must contain uppercase, lowercase, and number';
+    if (!RegExp(r'^(?=.*[a-z])(?=.*\d)').hasMatch(value)) {
+      return 'Password must contain lowercase and number';
     }
     return null;
   }
@@ -302,10 +302,6 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
           _buildPasswordRequirement(
             'At least 8 characters',
             password.length >= 8,
-          ),
-          _buildPasswordRequirement(
-            'One uppercase letter',
-            RegExp(r'[A-Z]').hasMatch(password),
           ),
           _buildPasswordRequirement(
             'One lowercase letter',

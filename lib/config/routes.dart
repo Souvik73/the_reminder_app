@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/ui/screens/home_screen.dart';
 import 'package:the_reminder_app/ui/screens/login_screen.dart';
 import 'package:the_reminder_app/ui/screens/register_screen.dart';
+import 'package:the_reminder_app/ui/screens/terms_conditions_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -27,6 +28,13 @@ class AppRouter {
         path: "/register_page",
         builder: (context, state) {
           return RegisterPage();
+        },
+      ),
+      GoRoute(
+        name: "terms",
+        path: "/terms",
+        builder: (context, state) {
+          return TermsConditionsScreen();
         },
       ),
     ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
@@ -157,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       leading: const Icon(Icons.article_outlined),
                       title: const Text('Terms of service'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: () => context.push('/terms'),
                     ),
                   ],
                 ),

@@ -268,7 +268,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           children: [
             GestureDetector(
               onTap: () {
-                // Navigate to terms
+                context.push('/terms');
               },
               child: const Text(
                 'Terms of Service',

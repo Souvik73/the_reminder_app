@@ -295,7 +295,7 @@ class _RegisterPageState extends State<RegisterPage>
           children: [
             GestureDetector(
               onTap: () {
-                // Navigate to terms
+                context.push('/terms');
               },
               child: const Text(
                 'Terms of Service',

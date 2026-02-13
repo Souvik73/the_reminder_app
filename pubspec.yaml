@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.1+5
+version: 1.0.1+7
 
 environment:
   sdk: ^3.8.1
@@ -51,8 +51,6 @@ dependencies:
   firebase_auth:      ^5.6.2     # authentication
   cloud_firestore:    ^5.6.11    # Firestore for storing reminders
   firebase_messaging: ^15.2.9    # push notifications
-  cloud_functions:    ^5.6.1     # callable cloud functions (e.g. scheduling)
-  firebase_analytics: ^11.5.2    # optional analytics
 
   # — LOCAL NOTIFICATIONS & ALARMS —
   flutter_local_notifications: ^19.3.0  # schedule/display on-device alarms
@@ -68,6 +66,7 @@ dependencies:
   flutter_timezone: ^5.0.1
   path_provider: ^2.1.4
   google_sign_in: ^6.2.1
+  url_launcher: ^6.3.1
 
   # - Splash Screen
   flutter_native_splash: ^2.4.6
@@ -88,6 +87,9 @@ dev_dependencies:
   build_runner: ^2.4.14
   hive_ce_generator: ^1.9.5
   flutter_launcher_icons: "^0.14.4"
+
+dependency_overrides:
+  url_launcher_android: 6.3.24
 
 flutter_native_splash:
   color: "#b9aedc"

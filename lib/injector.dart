@@ -8,6 +8,7 @@ import 'package:the_reminder_app/data/remote/firebase_user_sync_service.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:the_reminder_app/services/alarm_service.dart';
 import 'package:the_reminder_app/services/ad_service.dart';
+import 'package:the_reminder_app/services/firebase_engagement_service.dart';
 import 'package:the_reminder_app/services/notification_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -30,9 +31,11 @@ Future<void> init() async {
   final notificationService = NotificationService();
   final alarmService = AlarmService();
   final adService = AdService();
+  final engagementService = FirebaseEngagementService();
   await notificationService.init();
   await alarmService.init();
   await adService.init();
+  await engagementService.init();
 
   locator.registerLazySingleton<PlannerRepository>(() => plannerRepository);
   locator.registerLazySingleton<AuthSessionStore>(() => sessionStore);

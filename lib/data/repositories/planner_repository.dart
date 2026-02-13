@@ -107,6 +107,15 @@ class PlannerRepository {
     await box.put('dailyGoal', goal);
   }
 
+  Future<void> deleteUserData(String userId) async {
+    await _deleteBox('reminders_$userId');
+    await _deleteBox('alarms_$userId');
+    await _deleteBox('hydration_logs_$userId');
+    await _deleteBox('hydration_settings_$userId');
+    final users = await _openBox<AppUser>(_usersBox);
+    await users.delete(userId);
+  }
+
   Future<Box<Reminder>> _openReminderBox(String userId) {
     return _openBox<Reminder>('reminders_$userId');
   }
@@ -128,5 +137,13 @@ class PlannerRepository {
       return Hive.box<T>(name);
     }
     return Hive.openBox<T>(name);
+  }
+
+  Future<void> _deleteBox(String name) async {
+    if (Hive.isBoxOpen(name)) {
+      await Hive.box(name).clear();
+      await Hive.box(name).close();
+    }
+    await Hive.deleteBoxFromDisk(name);
   }
 }

@@ -55,10 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _resolveUserId() {
     final authState = context.read<AuthBloc>().state;
-    if (authState is AuthSuccess) {
-      return authState.userId;
-    }
-    return _fallbackUserId;
+    return _userIdFromState(authState);
   }
 
   void _syncUserScope(String userId) {
@@ -97,6 +94,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userIdFromState(AuthState state) {
     if (state is AuthSuccess) {
       return state.userId;
+    }
+    if (state is AuthLoading || state is AuthFailure) {
+      return _activeUserId ?? _fallbackUserId;
     }
     return _fallbackUserId;
   }
@@ -1158,14 +1158,15 @@ class _HomeDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cleanedName =
-        displayName != null && displayName!.trim().isNotEmpty
-            ? displayName!.trim()
-            : 'Guest';
-    final cleanedEmail =
-        email != null && email!.trim().isNotEmpty ? email!.trim() : null;
-    final cleanedPhoto =
-        photoUrl != null && photoUrl!.trim().isNotEmpty ? photoUrl!.trim() : null;
+    final cleanedName = displayName != null && displayName!.trim().isNotEmpty
+        ? displayName!.trim()
+        : 'Guest';
+    final cleanedEmail = email != null && email!.trim().isNotEmpty
+        ? email!.trim()
+        : null;
+    final cleanedPhoto = photoUrl != null && photoUrl!.trim().isNotEmpty
+        ? photoUrl!.trim()
+        : null;
     final details = cleanedEmail ?? 'Not signed in';
     return Drawer(
       child: SafeArea(
@@ -1184,8 +1185,9 @@ class _HomeDrawer extends StatelessWidget {
               accountEmail: Text(details),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                backgroundImage:
-                    cleanedPhoto != null ? NetworkImage(cleanedPhoto) : null,
+                backgroundImage: cleanedPhoto != null
+                    ? NetworkImage(cleanedPhoto)
+                    : null,
                 child: cleanedPhoto != null
                     ? null
                     : Icon(
@@ -1682,7 +1684,6 @@ class _AlarmCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _DismissibleActionBackground extends StatelessWidget {

@@ -41,6 +41,15 @@ class FirebaseUserSyncService {
     });
   }
 
+  Future<void> deleteUserData(String userId) async {
+    final userDoc = _firestore.collection('users').doc(userId);
+    final loginEvents = await userDoc.collection('login_events').get();
+    for (final event in loginEvents.docs) {
+      await event.reference.delete();
+    }
+    await userDoc.delete();
+  }
+
   void _ensureTimeZoneInitialized() {
     if (_timezoneInitialized) return;
     tz.initializeTimeZones();

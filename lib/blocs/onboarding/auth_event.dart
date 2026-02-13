@@ -14,3 +14,5 @@ class EmailSignInRequested extends AuthEvent {
 class SignOutRequested extends AuthEvent {}
 
 class RestoreSessionRequested extends AuthEvent {}
+
+class DeleteAccountRequested extends AuthEvent {}

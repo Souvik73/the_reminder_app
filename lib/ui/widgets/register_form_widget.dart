@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 class RegisterFormWidget extends StatefulWidget {
   final bool isLoading;
-  final Function(String email, String password, String phoneNumber) onRegister;
+  final Function(String email, String password) onRegister;
   final VoidCallback onLoginPressed;
 
   const RegisterFormWidget({
@@ -22,7 +22,6 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _phoneController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -33,7 +32,6 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -70,18 +68,6 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
     return null;
   }
 
-  String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your phone number';
-    }
-    // Remove any non-digit characters for validation
-    String digits = value.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.length < 10) {
-      return 'Please enter a valid phone number';
-    }
-    return null;
-  }
-
   void _handleRegister() {
     if (_formKey.currentState!.validate()) {
       if (!_agreeToTerms) {
@@ -98,11 +84,7 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
         return;
       }
 
-      widget.onRegister(
-        _emailController.text.trim(),
-        _passwordController.text,
-        _phoneController.text.trim(),
-      );
+      widget.onRegister(_emailController.text.trim(), _passwordController.text);
     }
   }
 
@@ -121,21 +103,6 @@ class _RegisterFormWidgetState extends State<RegisterFormWidget> {
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             validator: _validateEmail,
-          ),
-
-          const SizedBox(height: 20),
-
-          // Phone Number Field
-          _buildTextField(
-            controller: _phoneController,
-            label: 'Phone Number',
-            hintText: 'Enter your phone number',
-            prefixIcon: Icons.phone_outlined,
-            keyboardType: TextInputType.phone,
-            validator: _validatePhone,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d\s\-\(\)\+]')),
-            ],
           ),
 
           const SizedBox(height: 20),

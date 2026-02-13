@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/hydration/hydration_state.dart';
+import 'package:the_reminder_app/config/legal_links.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/utils/external_link_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, this.onOpenMenu});
@@ -113,7 +115,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         'Adjust to match your lifestyle and activity level.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ],
@@ -140,24 +144,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.headset_mic_outlined),
-                      title: const Text('Help & FAQs'),
+                      leading: const Icon(Icons.delete_outline),
+                      title: const Text('Account deletion guide'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: () {
+                        openExternalLink(
+                          context,
+                          url: LegalLinks.accountDeletion,
+                        );
+                      },
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.lock_outline),
                       title: const Text('Privacy policy'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: () {
+                        openExternalLink(
+                          context,
+                          url: LegalLinks.privacyPolicy,
+                        );
+                      },
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.article_outlined),
                       title: const Text('Terms of service'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: () {
+                        openExternalLink(
+                          context,
+                          url: LegalLinks.termsAndConditions,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -185,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onChanged: onChanged,
         title: Text(title),
         subtitle: Text(subtitle),
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18),
       ),
     );

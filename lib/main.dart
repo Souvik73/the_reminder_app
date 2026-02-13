@@ -12,14 +12,21 @@ import 'package:the_reminder_app/data/local/auth_session_store.dart';
 import 'package:the_reminder_app/data/repositories/planner_repository.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:the_reminder_app/services/alarm_service.dart';
 import 'package:the_reminder_app/services/notification_service.dart';
 import 'firebase_options.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await injection.init();
   final existingSession = await injection.locator<AuthSessionStore>().read();
   final initialUserId = existingSession?.userId ?? 'local-user';

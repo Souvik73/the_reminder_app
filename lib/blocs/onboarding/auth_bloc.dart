@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -30,6 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GoogleSignInRequested>(_handleSocialSignIn);
     on<AppleSignInRequested>(_handleSocialSignIn);
     on<SignOutRequested>(_handleSignOut);
+    on<DeleteAccountRequested>(_handleDeleteAccount);
     add(RestoreSessionRequested());
   }
 
@@ -49,17 +47,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthFailure(message: 'Please enter a valid email address.'));
       return;
     }
+    if (event.password.trim().isEmpty) {
+      emit(AuthFailure(message: 'Please enter your password.'));
+      return;
+    }
 
     emit(AuthLoading());
     try {
-      // Replace with real authentication logic when backend is ready.
-      await Future.delayed(const Duration(milliseconds: 800));
+      UserCredential userCredential;
+      try {
+        userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+          email: normalizedEmail,
+          password: event.password,
+        );
+      } on FirebaseAuthException catch (error) {
+        if (error.code == 'user-not-found') {
+          userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+            email: normalizedEmail,
+            password: event.password,
+          );
+        } else {
+          emit(AuthFailure(message: _messageForEmailAuthError(error)));
+          return;
+        }
+      }
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null || firebaseUser.email == null) {
+        emit(AuthFailure(message: 'Unable to read account details.'));
+        return;
+      }
       final user = await _plannerRepository.ensureUser(
-        userId: _buildUserIdFromEmail(normalizedEmail),
-        email: normalizedEmail,
-        displayName: displayName,
+        userId: firebaseUser.uid,
+        email: firebaseUser.email!,
+        displayName: firebaseUser.displayName ?? displayName,
       );
-      final resolvedDisplayName = user.displayName ?? displayName;
+      final resolvedDisplayName =
+          user.displayName ?? firebaseUser.displayName ?? displayName;
       await _syncLoginWithFallback(user: user, loginMethod: 'email');
       await _sessionStore.save(
         AuthSession(
@@ -76,6 +99,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           displayName: resolvedDisplayName,
         ),
       );
+    } on FirebaseAuthException catch (error) {
+      emit(AuthFailure(message: _messageForEmailAuthError(error)));
     } catch (error) {
       emit(AuthFailure(message: 'Unable to sign in. Please try again.'));
     }
@@ -98,8 +123,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        final userCredential =
-            await _firebaseAuth.signInWithCredential(credential);
+        final userCredential = await _firebaseAuth.signInWithCredential(
+          credential,
+        );
         final firebaseUser = userCredential.user;
         if (firebaseUser == null || firebaseUser.email == null) {
           throw FirebaseAuthException(
@@ -107,8 +133,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             message: 'Unable to read Google account details',
           );
         }
-        final displayName =
-            firebaseUser.displayName ?? googleUser.displayName;
+        final displayName = firebaseUser.displayName ?? googleUser.displayName;
         final photoUrl = firebaseUser.photoURL ?? googleUser.photoUrl;
         final user = await _plannerRepository.ensureUser(
           userId: firebaseUser.uid,
@@ -169,15 +194,78 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     SignOutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await Future.wait(
-      [
+    await Future.wait([
+      _firebaseAuth.signOut(),
+      _googleSignIn.signOut(),
+      _sessionStore.clear(),
+    ], eagerError: false);
+    emit(AuthInitial());
+  }
+
+  Future<void> _handleDeleteAccount(
+    DeleteAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccess) {
+      emit(AuthFailure(message: 'No signed-in account to delete.'));
+      return;
+    }
+
+    emit(AuthLoading());
+    try {
+      try {
+        await _userSyncService.deleteUserData(currentState.userId);
+      } catch (error) {
+        debugPrint('Cloud user-data deletion skipped: $error');
+      }
+
+      final firebaseUser = _firebaseAuth.currentUser;
+      if (firebaseUser != null && firebaseUser.uid == currentState.userId) {
+        await firebaseUser.delete();
+      }
+
+      await _plannerRepository.deleteUserData(currentState.userId);
+
+      await Future.wait([
         _firebaseAuth.signOut(),
         _googleSignIn.signOut(),
         _sessionStore.clear(),
-      ],
-      eagerError: false,
-    );
-    emit(AuthInitial());
+      ], eagerError: false);
+      emit(AuthInitial());
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'requires-recent-login') {
+        emit(
+          AuthDeleteFailure(
+            userId: currentState.userId,
+            email: currentState.email,
+            displayName: currentState.displayName,
+            photoUrl: currentState.photoUrl,
+            message: 'Please sign in again, then retry account deletion.',
+          ),
+        );
+        return;
+      }
+      emit(
+        AuthDeleteFailure(
+          userId: currentState.userId,
+          email: currentState.email,
+          displayName: currentState.displayName,
+          photoUrl: currentState.photoUrl,
+          message: 'Failed to delete account. Please try again.',
+        ),
+      );
+    } catch (error) {
+      emit(
+        AuthDeleteFailure(
+          userId: currentState.userId,
+          email: currentState.email,
+          displayName: currentState.displayName,
+          photoUrl: currentState.photoUrl,
+          message: 'Failed to delete account. Please try again.',
+        ),
+      );
+    }
   }
 
   Future<void> _handleRestoreSession(
@@ -209,12 +297,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   String _normalizeEmail(String rawEmail) => rawEmail.trim().toLowerCase();
 
-  String _buildUserIdFromEmail(String normalizedEmail) {
-    final safeEncoded =
-        base64Url.encode(utf8.encode(normalizedEmail)).replaceAll('=', '');
-    return 'email-$safeEncoded';
-  }
-
   Future<void> _syncLoginWithFallback({
     required AppUser user,
     required String loginMethod,
@@ -241,12 +323,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final segments = localPart
         .split(RegExp(r'[.\-_]+'))
         .where((segment) => segment.isNotEmpty)
-        .map((segment) =>
-            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}')
+        .map(
+          (segment) =>
+              '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
+        )
         .toList();
     if (segments.isEmpty) {
       return null;
     }
     return segments.join(' ');
+  }
+
+  String _messageForEmailAuthError(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'email-already-in-use':
+        return 'This email is already in use. Try signing in.';
+      default:
+        return 'Unable to sign in. Please try again.';
+    }
   }
 }

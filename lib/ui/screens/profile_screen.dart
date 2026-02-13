@@ -5,11 +5,13 @@ import 'package:the_reminder_app/blocs/hydration/hydration_cubit.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
 import 'package:the_reminder_app/blocs/reminder/reminder_bloc.dart';
+import 'package:the_reminder_app/config/legal_links.dart';
 import 'package:the_reminder_app/models/planner_models.dart';
 import 'package:the_reminder_app/ui/theme/app_colors.dart';
 import 'package:the_reminder_app/ui/theme/app_gradients.dart';
 import 'package:the_reminder_app/ui/widgets/ad_banner.dart';
 import 'package:the_reminder_app/ui/widgets/gradient_page_shell.dart';
+import 'package:the_reminder_app/utils/external_link_launcher.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, this.onOpenMenu});
@@ -19,6 +21,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
+    final deletingAccount = authState is AuthLoading;
     final hydrationState = context.watch<HydrationCubit>().state;
     final reminderState = context.watch<ReminderBloc>().state;
     final reminders = reminderState.reminders;
@@ -35,12 +38,31 @@ class ProfileScreen extends StatelessWidget {
     final recentHydration = hydrationHistory.toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          previous is! AuthInitial && current is AuthInitial,
-      listener: (context, state) {
-        context.go('/login_page');
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              previous is! AuthInitial && current is AuthInitial,
+          listener: (context, state) {
+            context.go('/login_page');
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthFailure || current is AuthDeleteFailure,
+          listener: (context, state) {
+            final message = switch (state) {
+              AuthFailure(:final message) => message,
+              AuthDeleteFailure(:final message) => message,
+              _ => null,
+            };
+            if (message == null) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          },
+        ),
+      ],
       child: GradientPageShell(
         icon: Icons.person_outline,
         title: 'Profile',
@@ -125,11 +147,73 @@ class ProfileScreen extends StatelessWidget {
                   },
                 ),
               ),
+              const SizedBox(height: 12),
+              Card(
+                color: AppColors.cardBackground,
+                shadowColor: AppColors.cardShadow,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.delete_forever_outlined,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text('Delete account'),
+                  subtitle: const Text('Removes local and cloud account data'),
+                  trailing: deletingAccount
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.chevron_right),
+                  onTap: deletingAccount
+                      ? null
+                      : () => _confirmDeleteAccount(context),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete account?'),
+          content: const Text(
+            'This permanently removes your reminders, alarms, hydration logs, '
+            'and account profile data from this app.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                openExternalLink(context, url: LegalLinks.accountDeletion);
+              },
+              child: const Text('View guide'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldDelete != true) return;
+    if (!context.mounted) return;
+    context.read<AuthBloc>().add(DeleteAccountRequested());
   }
 
   String _friendlyFirstName(AuthState state) {

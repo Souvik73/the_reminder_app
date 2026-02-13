@@ -93,7 +93,6 @@ class _PomodoroSessionScreenState extends State<PomodoroSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final phaseLabel = _isWorkPhase ? 'Focus' : 'Rest';
     final subtitle = _isWorkPhase ? 'Deep focus mode' : 'Reset and breathe';
     final workLabel = '${widget.workDuration.inMinutes}m Focus';
     final restLabel = '${widget.restDuration.inMinutes}m Rest';

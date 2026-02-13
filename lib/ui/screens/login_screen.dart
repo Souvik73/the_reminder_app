@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
+import 'package:the_reminder_app/config/legal_links.dart';
 import 'package:the_reminder_app/ui/widgets/auth_form_widget.dart';
 import 'dart:io' show Platform;
 
 import 'package:the_reminder_app/ui/widgets/social_login_widget.dart';
+import 'package:the_reminder_app/utils/external_link_launcher.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -268,7 +270,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           children: [
             GestureDetector(
               onTap: () {
-                // Navigate to terms
+                openExternalLink(context, url: LegalLinks.termsAndConditions);
               },
               child: const Text(
                 'Terms of Service',
@@ -285,7 +287,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
             GestureDetector(
               onTap: () {
-                // Navigate to privacy policy
+                openExternalLink(context, url: LegalLinks.privacyPolicy);
               },
               child: const Text(
                 'Privacy Policy',

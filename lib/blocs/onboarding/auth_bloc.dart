@@ -214,11 +214,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     emit(AuthLoading());
     try {
-      try {
-        await _userSyncService.deleteUserData(currentState.userId);
-      } catch (error) {
-        debugPrint('Cloud user-data deletion skipped: $error');
-      }
+      await _userSyncService.deleteUserData(currentState.userId);
 
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser != null && firebaseUser.uid == currentState.userId) {

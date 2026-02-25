@@ -25,7 +25,7 @@ class SocialLoginWidget extends StatelessWidget {
           textColor: const Color(0xFF2D3748),
           borderColor: Colors.grey[300]!,
         ),
-        
+
         // Apple Sign In Button (iOS only)
         if (onApplePressed != null) ...[
           const SizedBox(height: 16),
@@ -77,11 +77,7 @@ class SocialLoginWidget extends StatelessWidget {
                       width: 24,
                       height: 24,
                     )
-                  : Icon(
-                      Icons.apple,
-                      color: textColor,
-                      size: 24,
-                    ),
+                  : Icon(Icons.apple, color: textColor, size: 24),
             ),
             const SizedBox(width: 12),
             Text(

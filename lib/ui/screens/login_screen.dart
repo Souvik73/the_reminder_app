@@ -1,14 +1,14 @@
-// lib/features/authentication/presentation/pages/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_bloc.dart';
 import 'package:the_reminder_app/blocs/onboarding/auth_event.dart';
+import 'package:the_reminder_app/config/legal_links.dart';
 import 'package:the_reminder_app/ui/widgets/auth_form_widget.dart';
 import 'dart:io' show Platform;
 
 import 'package:the_reminder_app/ui/widgets/social_login_widget.dart';
+import 'package:the_reminder_app/utils/external_link_launcher.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -43,6 +43,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         );
 
     _animationController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _redirectIfAuthenticated(context.read<AuthBloc>().state);
+    });
   }
 
   @override
@@ -56,14 +60,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            context.go("/");
-          } else if (state is AuthFailure) {
+          _redirectIfAuthenticated(state);
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
@@ -89,7 +93,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     // Login Form Section
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(top: 40),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -110,6 +113,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
+  void _redirectIfAuthenticated(AuthState state) {
+    if (state is AuthSuccess) {
+      context.go("/");
+    }
+  }
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(40),
@@ -122,14 +131,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               color: Colors.white.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
-              Icons.notifications_active,
-              size: 50,
-              color: Colors.white,
+            child: Image.asset(
+              'assets/images/logo_trimmed.png',
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // App Name
           const Text(
@@ -190,11 +200,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               // Social Login Buttons
               SocialLoginWidget(
                 onGooglePressed: () {
-                  // context.read<AuthBloc>().add(GoogleSignInRequested());
+                  context.read<AuthBloc>().add(GoogleSignInRequested());
                 },
                 onApplePressed: Platform.isIOS
                     ? () {
-                        // context.read<AuthBloc>().add(AppleSignInRequested());
+                        context.read<AuthBloc>().add(AppleSignInRequested());
                       }
                     : null,
                 isLoading: state is AuthLoading,
@@ -232,7 +242,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   );
                 },
                 onCreateAccount: () {
-                  Navigator.pushNamed(context, '/register');
+                  context.push("/register_page");
                 },
               ),
 
@@ -260,7 +270,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           children: [
             GestureDetector(
               onTap: () {
-                // Navigate to terms
+                openExternalLink(context, url: LegalLinks.termsAndConditions);
               },
               child: const Text(
                 'Terms of Service',
@@ -277,7 +287,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
             GestureDetector(
               onTap: () {
-                // Navigate to privacy policy
+                openExternalLink(context, url: LegalLinks.privacyPolicy);
               },
               child: const Text(
                 'Privacy Policy',
@@ -294,14 +304,3 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 }
-
-// lib/features/authentication/presentation/widgets/social_login_widget.dart
-
-
-
-// lib/features/authentication/presentation/widgets/auth_form_widget.dart
-
-
-
-// lib/features/authentication/presentation/bloc/auth_event.dart
-

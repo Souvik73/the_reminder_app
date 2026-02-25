@@ -1,0 +1,78 @@
+{
+  "project_info": {
+    "project_number": "266329530255",
+    "project_id": "the-reminder-app-7e0e4",
+    "storage_bucket": "the-reminder-app-7e0e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266329530255:android:5909a51f5432ff177ef5fa",
+        "android_client_info": {
+          "package_name": "com.souvik.the_reminder_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "266329530255-a8t01mufmjm1b38fno5nddl6mmh868me.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "dc2443ff5c1ace50d4d542fb4d2b130ecda0c57c"
+          }
+        },
+        {
+          "client_id": "266329530255-b3ps6qfmmr922hdknef17fpu3bihp82l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "d12d2b52c521d6f14ca8789770aa709952aef371"
+          }
+        },
+        {
+          "client_id": "266329530255-lf32er70rh356g2vp23gsnp9p809g69i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "43e317ffc330ebfac550ae0003b684f82e9801e3"
+          }
+        },
+        {
+          "client_id": "266329530255-p189lvm9sf13048e0ph5t0ur44fvoncf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.souvik.the_reminder_app",
+            "certificate_hash": "cad9e917643fecbab009854571a48c398a602330"
+          }
+        },
+        {
+          "client_id": "266329530255-26pkfoit5ueete442nilf4unv29u7vsc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxsm8N2csSEiMLgMaeCmA8ay6CS1BRvWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "266329530255-26pkfoit5ueete442nilf4unv29u7vsc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "266329530255-vj33qrikeh35648qo8a9mkrc9kk7uql4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.theReminderApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

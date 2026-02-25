@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.1+7
 
 environment:
   sdk: ^3.8.1
@@ -51,8 +51,6 @@ dependencies:
   firebase_auth:      ^5.6.2     # authentication
   cloud_firestore:    ^5.6.11    # Firestore for storing reminders
   firebase_messaging: ^15.2.9    # push notifications
-  cloud_functions:    ^5.6.1     # callable cloud functions (e.g. scheduling)
-  firebase_analytics: ^11.5.2    # optional analytics
 
   # — LOCAL NOTIFICATIONS & ALARMS —
   flutter_local_notifications: ^19.3.0  # schedule/display on-device alarms
@@ -60,18 +58,21 @@ dependencies:
   # — CALENDAR & DATE PICKERS —
   table_calendar:    ^3.2.0    # calendar UI for picking dates
 
-  # — GEOLOCATION & GEOFENCING —
-  geolocator:        ^14.0.2   # get device location
-  geofencing_api:    ^2.0.0    # monitor enter/exit regions
-
   # — UTILITIES —
   uuid:               ^4.5.1   # generate unique IDs
   intl:               ^0.20.2  # formatting dates/times
   get_it: ^8.0.3
+  timezone: ^0.10.1          # time-zone aware scheduling
+  flutter_timezone: ^5.0.1
+  path_provider: ^2.1.4
+  google_sign_in: ^6.2.1
+  url_launcher: ^6.3.1
 
   # - Splash Screen
   flutter_native_splash: ^2.4.6
   flutter_screenutil: ^5.9.3
+  alarm: ^5.1.5
+  google_mobile_ads: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -83,6 +84,42 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  build_runner: ^2.4.14
+  hive_ce_generator: ^1.9.5
+  flutter_launcher_icons: "^0.14.4"
+
+dependency_overrides:
+  url_launcher_android: 6.3.24
+
+flutter_native_splash:
+  color: "#b9aedc"
+  image: "assets/images/logo_trimmed.png"
+  fullscreen: true
+  android_12:
+    image: "assets/images/logo_trimmed.png"
+    icon_background_color: "#b9aedc"
+
+flutter_launcher_icons:
+  image_path: "assets/images/logo_trimmed.png"
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/logo_trimmed.png"
+    background_color: "#E9ECFF"
+    theme_color: "#6B73FF"
+  windows:
+    generate: true
+    image_path: "assets/images/logo_trimmed.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/images/logo_trimmed.png"
+
+  info_plist_files:
+    - 'ios/Runner/Info.plist'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,8 +133,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/images/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

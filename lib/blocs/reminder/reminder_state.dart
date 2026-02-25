@@ -1,0 +1,61 @@
+import 'package:equatable/equatable.dart';
+import 'package:the_reminder_app/models/planner_models.dart';
+
+class ReminderState extends Equatable {
+  final List<Reminder> reminders;
+  final String activeUserId;
+  final bool isLoading;
+  final int permissionWarningCounter;
+
+  const ReminderState({
+    required this.reminders,
+    required this.activeUserId,
+    required this.isLoading,
+    required this.permissionWarningCounter,
+  });
+
+  factory ReminderState.initial(String userId) {
+    return ReminderState(
+      reminders: const [],
+      activeUserId: userId,
+      isLoading: true,
+      permissionWarningCounter: 0,
+    );
+  }
+
+  ReminderState copyWith({
+    List<Reminder>? reminders,
+    String? activeUserId,
+    bool? isLoading,
+    int? permissionWarningCounter,
+  }) {
+    return ReminderState(
+      reminders: reminders ?? this.reminders,
+      activeUserId: activeUserId ?? this.activeUserId,
+      isLoading: isLoading ?? this.isLoading,
+      permissionWarningCounter:
+          permissionWarningCounter ?? this.permissionWarningCounter,
+    );
+  }
+
+  List<Reminder> get activeReminders => reminders;
+
+  Map<ReminderPriority, List<Reminder>> get remindersByPriority {
+    final grouped = <ReminderPriority, List<Reminder>>{
+      ReminderPriority.high: [],
+      ReminderPriority.medium: [],
+      ReminderPriority.low: [],
+    };
+    for (final reminder in reminders) {
+      grouped[reminder.priority]?.add(reminder);
+    }
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    }
+    return grouped;
+  }
+
+  @override
+  List<Object?> get props =>
+      [reminders, activeUserId, isLoading, permissionWarningCounter];
+}

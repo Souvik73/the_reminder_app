@@ -59,15 +59,17 @@ class _AuthFormWidgetState extends State<AuthFormWidget> {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
                 return 'Please enter a valid email';
               }
               return null;
             },
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Password Field
           TextFormField(
             controller: _passwordController,
@@ -108,9 +110,9 @@ class _AuthFormWidgetState extends State<AuthFormWidget> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Forgot Password
           Align(
             alignment: Alignment.centerRight,
@@ -127,9 +129,9 @@ class _AuthFormWidgetState extends State<AuthFormWidget> {
               ),
             ),
           ),
-          
-          const SizedBox(height: 24),
-          
+
+          const SizedBox(height: 16),
+
           // Login Button
           SizedBox(
             width: double.infinity,
@@ -171,19 +173,16 @@ class _AuthFormWidgetState extends State<AuthFormWidget> {
                     ),
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Create Account
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Don't have an account? ",
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               GestureDetector(
                 onTap: widget.onCreateAccount,
